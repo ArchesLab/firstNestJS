@@ -42,8 +42,8 @@ export class AppService {
         { name: payload.name.trim() },
       );
       return { user: response.data };
-    } catch (err: any) {
-      if (err?.response?.status === 409) {
+    } catch (err: unknown) {
+      if (axios.isAxiosError(err) && err.response?.status === 409) {
         throw new BadRequestException('User already exists');
       }
       throw new ServiceUnavailableException('Failed to create user profile');
@@ -62,8 +62,8 @@ export class AppService {
         `${this.clubsServiceBase}/clubs/roles/${clubId}/${userId}`,
       );
       return resp.data;
-    } catch (err: any) {
-      if (err?.response?.status === 404) {
+    } catch (err: unknown) {
+      if (axios.isAxiosError(err) && err.response?.status === 404) {
         throw new BadRequestException('Club or user not found');
       }
       throw new ServiceUnavailableException('Failed to fetch role from clubs');
