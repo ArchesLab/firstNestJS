@@ -3,6 +3,7 @@ import {
   Controller,
   Get,
   Post,
+  Patch,
   Param,
   Body,
   ParseIntPipe,
@@ -44,5 +45,10 @@ export class UsersController {
   @Get(':userId/clubs')
   async getUserClubs(@Param('userId', ParseIntPipe) userId: number) {
     return await this.usersService.getUserClubs(userId);
+  }
+
+  @Patch('unsubscribe/:userId')
+  async markUnsubscribed(@Param('userId', ParseIntPipe) userID: number) {
+    return await this.usersService.markUnsubscribed(userID);
   }
 }

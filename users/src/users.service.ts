@@ -82,4 +82,13 @@ export class UsersService {
       this.memberships.filter((m) => m.userId === userId),
     );
   }
+
+  async markUnsubscribed(userID: number): Promise<User> {
+    const user = this.users.find((u) => u.id === userID);
+    if (!user) {
+      throw new NotFoundException(`User with id "${userID}" does not exist`);
+    }
+    user.unsubscribed = true;
+    return await Promise.resolve(user);
+  }
 }

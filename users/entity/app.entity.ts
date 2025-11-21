@@ -3,6 +3,7 @@
 export interface User {
   id: number;
   name: string;
+  unsubscribed?: boolean;
 }
 
 export interface createUser {
