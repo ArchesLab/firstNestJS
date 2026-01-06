@@ -13,9 +13,7 @@
     "dev": "concurrently --raw -n auth,clubs,events,gateway,notifications,users \"npm run dev --workspace auth\" \"npm run dev --workspace clubs\" \"npm run dev --workspace events\" \"npm run dev --workspace gateway\" \"npm run dev --workspace notifications\" \"npm run dev --workspace users\""
   },
   "devDependencies": {
+    "@ast-grep/cli": "^0.40.3",
     "concurrently": "^9.1.2"
   }
 }
-
-
-
