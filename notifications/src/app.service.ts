@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
 
 type EmailTemplate = {
@@ -11,12 +12,24 @@ type EmailTemplate = {
 
 @Injectable()
 export class AppService {
+  private readonly eventsBaseUrl: string;
+  private readonly usersBaseUrl: string;
+
+  constructor(private readonly configService: ConfigService) {
+    const eventsURL = this.configService.get<string>('EVENTS_SERVICE_URL');
+    const usersURL = this.configService.get<string>('USERS_SERVICE_URL');
+    if (!eventsURL || !usersURL) {
+      throw new Error(
+        'Critical Environment Variable EVENTS_SERVICE_URL or USERS_SERVICE_URL is missing!',
+      );
+    }
+    this.eventsBaseUrl = eventsURL;
+    this.usersBaseUrl = usersURL;
+  }
+
   getHello(): string {
     return 'Hello World!';
   }
-
-  private readonly eventsBaseUrl = 'http://localhost:3002';
-  private readonly usersBaseUrl = 'http://localhost:3005';
 
   async fetchTemplate(templateId: string): Promise<EmailTemplate> {
     const url = `${this.eventsBaseUrl}/events/template-data/${templateId}`;
