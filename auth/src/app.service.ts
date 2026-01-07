@@ -4,6 +4,7 @@ import {
   ServiceUnavailableException,
 } from '@nestjs/common';
 import axios from 'axios';
+import { ConfigService } from '@nestjs/config';
 
 interface RegisterPayload {
   name: string;
@@ -24,13 +25,21 @@ interface UserRoleResult {
 
 @Injectable()
 export class AppService {
+  private readonly usersServiceBase: string;
+  private readonly clubsServiceBase: string;
+
+  constructor(private readonly configService: ConfigService) {
+    const usersUrl = this.configService.get<string>('USERS_SERVICE_URL');
+    const clubsUrl = this.configService.get<string>('CLUBS_SERVICE_URL');
+    if (!usersUrl || !clubsUrl) {
+      throw new Error('Critical Environment Variables are missing!');
+    }
+    this.usersServiceBase = usersUrl;
+    this.clubsServiceBase = clubsUrl;
+  }
   getHello(): string {
     return 'Hello World!';
   }
-
-  private readonly usersServiceBase = 'http://localhost:3005';
-  private readonly clubsServiceBase = 'http://localhost:3001';
-
   async register(payload: RegisterPayload): Promise<{ user: CreatedUser }> {
     if (!payload.name || payload.name.trim().length === 0) {
       throw new BadRequestException('Name is required');
