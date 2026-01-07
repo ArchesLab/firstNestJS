@@ -1,13 +1,25 @@
 import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import { Club } from '../entity/app.entity';
 
 @Injectable()
 export class ClubsClientService {
-  private readonly clubsServiceUrl = 'http://localhost:3001';
+  private readonly clubsServiceUrl: string;
 
-  constructor(private readonly httpService: HttpService) {}
+  constructor(
+    private readonly httpService: HttpService,
+    private readonly configService: ConfigService,
+  ) {
+    const clubsURL = this.configService.get<string>('CLUBS_SERVICE_URL');
+    if (!clubsURL) {
+      throw new Error(
+        'Critical Environment Variable CLUBS_SERVICE_URL is missing!',
+      );
+    }
+    this.clubsServiceUrl = clubsURL;
+  }
 
   async getClubByName(name: string): Promise<Club> {
     try {
