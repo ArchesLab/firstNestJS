@@ -1,10 +1,21 @@
 /* eslint-disable prettier/prettier */
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
 import { Club, createClub, updateClub } from '../entity/app.entity';
 
 @Injectable()
 export class ClubsService {
+  private readonly eventsServiceBase: string;
+
+  constructor(private readonly configService: ConfigService) {
+    const eventsURL = this.configService.get<string>('EVENTS_SERVICE_URL');
+    if (!eventsURL) {
+      throw new Error('Critical Environment Variable EVENTS_SERVICE_URL is missing!');
+    }
+    this.eventsServiceBase = eventsURL;
+  }
+
   //Using in-memory array to simulate database but irl, actual DB is used and async would be necessary
   private clubs: Club[] = [
     { id: 1, name: 'ACM' },
@@ -47,7 +58,6 @@ export class ClubsService {
     return await Promise.resolve({ removed: true, eventId });
   }
 
-  private readonly eventsServiceBase = 'http://localhost:3002';
   private readonly roles: Record<number, Record<number, string>> = {
     // clubId -> userId -> role
     1: { 1: 'officer', 2: 'member' },
