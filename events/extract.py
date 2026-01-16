@@ -28,7 +28,7 @@ def get_ast_grep_matches(rule_path, target_dir):
             # 'text' is the actual string found in code (e.g., 'CLUBS_SERVICE_URL')
             raw_text = match.get('text', '').strip()
             if raw_text:
-                # IMPORTANT: Remove quotes so "'KEY'" becomes "KEY"
+                # Remove quotes so "'KEY'" becomes "KEY"
                 # This allows it to match the keys found in os.environ
                 clean_text = raw_text.strip("'\"")
                 found_matches.add(clean_text)
@@ -62,6 +62,6 @@ if not are_the_same:
     missing_in_code = env_url_keys - code_url_keys
     missing_in_env = code_url_keys - env_url_keys
     if missing_in_code:
-        print(f"⚠️  Missing in Code: {missing_in_code}")
+        print(f"Missing in Code: {missing_in_code}")
     if missing_in_env:
-        print(f"⚠️  Missing in Env:  {missing_in_env}")
+        print(f"Missing in Env:  {missing_in_env}")
