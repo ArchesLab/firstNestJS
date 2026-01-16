@@ -1,0 +1,26 @@
+
+#npx sg scan -r "C:\Users\mary\Clubs\Research\simple-app\events\rules\url-rules.yml" "C:\Users\mary\Clubs\Research\simple-app\events\src\app.service.ts" 
+id: matches-url-in-configService
+language: typescript
+rule:
+  kind: string_fragment
+  inside:
+    kind: variable_declarator
+    stopBy: end
+    all:
+      - has:
+          kind: identifier
+          pattern: $URL_VAR
+          stopBy: end
+      - has:
+          kind: call_expression
+          pattern: this.configService.get<string>($ENV_KEY)
+    inside:
+      kind: statement_block
+      stopBy: end 
+      has:
+        kind: expression_statement
+        has:
+          kind: identifier
+          pattern: $URL_VAR
+          stopBy: end
