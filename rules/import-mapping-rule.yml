@@ -1,0 +1,11 @@
+id: map-service-import
+language: typescript
+rule:
+  pattern: import { $SERVICE_CLASS } from '$SOURCE_PATH'
+
+constraints:
+  SERVICE_CLASS:
+    regex: .*Service$
+  SOURCE_PATH:
+    regex: .*\.service.*
+    
