@@ -1,12 +1,10 @@
 /**
- * @name Trace Every Step of Clubs URL
+ * @name Trace Config to URL (Isolated Paths)
  * @kind path-problem
  * @problem.severity info
- * @id js/research/trace-clubs-url
+ * @id js/research/trace-isolated-paths
  */
-/** This query traces the complete data flow path from the configuration service
-call to the final URL variable, including intermediate steps such as property
-assignments and template literals.*/
+
 import javascript
 import semmle.javascript.dataflow.TaintTracking
 
@@ -27,11 +25,13 @@ module ClubsTraceConfig implements DataFlow::ConfigSig {
   }
 
   predicate isAdditionalFlowStep(DataFlow::Node node1, DataFlow::Node node2) {
-    // BRIDGE 1: The Teleport (Assignment to Property -> Reading of Property)
-    exists(AssignExpr assign, PropAccess read |
-      assign.getLhs().(PropAccess).getPropertyName().toLowerCase().matches("%baseurl") and
-      read.getPropertyName().toLowerCase().matches("%baseurl") and
-      // Teleport from the VALUE being assigned to the PLACE it is read
+    // BRIDGE 1: The STRICT Teleport
+    // We use 'propName' to ensure the property written to is the SAME one being read.
+    exists(AssignExpr assign, PropAccess read, string propName |
+      propName.toLowerCase().matches("%baseurl") and
+      assign.getLhs().(PropAccess).getPropertyName() = propName and
+      read.getPropertyName() = propName and
+      // Flow from the value being assigned into the property being read
       node1.asExpr() = assign.getRhs() and
       node2.asExpr() = read
     )
@@ -49,4 +49,5 @@ import ClubsTrace::PathGraph
 
 from ClubsTrace::PathNode source, ClubsTrace::PathNode sink
 where ClubsTrace::flowPath(source, sink)
-select sink.getNode(), source, sink, "Full data flow path found from Config to URL!"
+select sink.getNode(), source, sink, 
+  "Isolated path found ending in function: " + sink.getNode().asExpr().getEnclosingFunction().getName()
