@@ -1,0 +1,6 @@
+"axiosCall","col1"
+"axios.p ...       )","Final URL: {USERS_SERVICE_URL}/users"
+"axios.p ... \n    })","Final URL: {EVENTS_SERVICE_URL}/events"
+"axios.post(url)","Final URL: {NOTIFICATIONS_SERVICE_URL}/notifications/event-update"
+"axios.g ... users`)","Final URL: {USERS_SERVICE_URL}/users"
+"axios.g ... clubs`)","Final URL: {CLUBS_SERVICE_URL}/clubs"
