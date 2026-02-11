@@ -12,7 +12,7 @@ string getAPossibleValue(DataFlow::Node node) {
   // 1. Base Case: Literals
   result = node.asExpr().(StringLiteral).getValue()
   or
-  // 2. Base Case: ConfigService.get('...')
+  // 2. Base Case: ConfigService.get('...') because it can't jump between files
   exists(MethodCallExpr mc |
     mc.getMethodName() = "get" and
     result = "{" + mc.getAnArgument().(StringLiteral).getValue() + "}" and
@@ -27,7 +27,6 @@ string getAPossibleValue(DataFlow::Node node) {
     write = assign.getLhs() and
     write.getBase() instanceof ThisExpr and
     write.getPropertyName() = read.getPropertyName() and
-    // Recurse into the right-hand side of the assignment
     result = getAPossibleValue(DataFlow::valueNode(assign.getRhs()))
   )
   or
