@@ -1,5 +1,5 @@
 | mock_code.ts:43:28:43:42 | axios.post(url) | Final URL: {NOTIFICATIONS_SERVICE_URL}/notifications/event-update |
-| test.ts:4:1:4:19 | axios.get(basicUrl) | Final URL: http://localhost:3000 |
 | test.ts:13:1:13:32 | axios.g ... ealth`) | Final URL: {DEV_URL}/health |
 | test.ts:13:1:13:32 | axios.g ... ealth`) | Final URL: {PROD_URL}/health |
+| test.ts:25:1:25:20 | axios.get(url) | Final URL: http://localhost:8010/status |
 | test.ts:25:1:25:20 | axios.get(loopedUrl) | Final URL: base/path/path/path |

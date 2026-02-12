@@ -12,6 +12,9 @@ string getAPossibleValue(DataFlow::Node node) {
   // 1. Base Case: Literals
   result = node.asExpr().(StringLiteral).getValue()
   or
+  // 1b. Fix: Use NumberLiteral instead of NumericLiteral
+  result = node.asExpr().(NumberLiteral).getValue()
+  or
   // 2. Base Case: ConfigService.get('...') because it can't jump between files
   exists(MethodCallExpr mc |
     mc.getMethodName() = "get" and
@@ -36,7 +39,49 @@ string getAPossibleValue(DataFlow::Node node) {
     result = getTemplateRecursive(tl, 0)
   )
   or
-  // 5. Standard Local Flow (for variables like 'url' inside the method)
+  // 4b. Arithmetic (Math only)
+  exists(BinaryExpr be, float left, float right |
+    be = node.asExpr() and
+    be.getOperator() = "+" and
+    // Directly check if operands are numbers without calling getAPossibleValue recursively for strings
+    left = be.getLeftOperand().(NumberLiteral).getValue().toFloat() and
+    right = be.getRightOperand().(NumberLiteral).getValue().toFloat() and
+    result = (left + right).toString()
+  )
+  or
+  // 4b. Smart Arithmetic (Handles 8010)
+  exists(BinaryExpr add, string leftStr, string rightStr |
+    add = node.asExpr() and
+    add.getOperator() = "+" and
+    leftStr = getAPossibleValue(DataFlow::valueNode(add.getLeftOperand())) and
+    rightStr = getAPossibleValue(DataFlow::valueNode(add.getRightOperand())) and
+    (
+      if leftStr.regexpMatch("\\d+") and rightStr.regexpMatch("\\d+")
+      then 
+        // If both look like numbers, do real math
+        result = (leftStr.toFloat() + rightStr.toFloat()).toString()
+      else 
+        // Otherwise, concatenate
+        result = leftStr + rightStr
+    )
+  )
+  or
+  // 4d. Loop/Append assignment (+=) - Fixes the Loop issue
+  exists(AssignAddExpr aa |
+    aa = node.asExpr() and
+    // In JS library, AssignAddExpr is specifically the += operator
+    result = getAPossibleValue(DataFlow::valueNode(aa.getLhs())) +
+             getAPossibleValue(DataFlow::valueNode(aa.getRhs()))
+  )
+  or
+  // 5. THE LOOP FIX: Handle 'loopedUrl += "/path"' (Fixes Case 4)
+  exists(AssignAddExpr aa |
+    aa = node.asExpr() and
+    result = getAPossibleValue(DataFlow::valueNode(aa.getLhs())) + 
+             getAPossibleValue(DataFlow::valueNode(aa.getRhs()))
+  )
+  or
+  // 6. Data Flow
   exists(DataFlow::Node source |
     source != node and
     DataFlow::localFlowStep(source, node) and
