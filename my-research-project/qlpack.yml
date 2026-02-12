@@ -3,5 +3,6 @@ library: false
 warnOnImplicitThis: false
 name: my-research-project
 version: "0.0.1"
+extractor: javascript
 dependencies:
   codeql/javascript-all: "*"
