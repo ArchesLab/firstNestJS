@@ -1,5 +1,10 @@
-| test.ts:22:28:22:42 | axios.post(url) | Final URL: {NOTIFICATIONS_SERVICE_URL}/notifications/event-update |
-| test.ts:36:1:36:32 | axios.g ... ealth`) | Final URL: {DEV_URL}/health |
-| test.ts:36:1:36:32 | axios.g ... ealth`) | Final URL: {PROD_URL}/health |
-| test.ts:42:1:42:14 | axios.get(url) | Final URL: http://localhost:8010/status |
-| test.ts:49:1:49:20 | axios.get(loopedUrl) | Final URL: base |
+| test.ts:54:28:54:42 | axios.post(url) | Final URL: /notifications/event-update |
+| test.ts:54:28:54:42 | axios.post(url) | Final URL: {NOTIFICATIONS_SERVICE_URL}/notifications/event-update |
+| test.ts:63:26:63:75 | axios.g ... oles/`) | Final URL: /clubs/roles/ |
+| test.ts:63:26:63:75 | axios.g ... oles/`) | Final URL: {CLUBS_SERVICE_URL}/clubs/roles/ |
+| test.ts:79:1:79:32 | axios.g ... ealth`) | Final URL: {DEV_URL}/health |
+| test.ts:79:1:79:32 | axios.g ... ealth`) | Final URL: {PROD_URL}/health |
+| test.ts:85:1:85:14 | axios.get(url) | Final URL: http://localhost:8010/status |
+| test.ts:92:1:92:20 | axios.get(loopedUrl) | Final URL: base |
+| test.ts:127:1:127:25 | axios.g ... PI_URL) | Final URL: https://api.example.com/v1/data |
+| test.ts:140:1:140:19 | axios.get(finalUrl) | Final URL: https://backend.service.com/api/status |
