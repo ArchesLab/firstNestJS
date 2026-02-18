@@ -7,6 +7,7 @@ import javascript
 
 /**
  * Recursive predicate to reconstruct string values, now bridging class properties.
+ * Returns empty string for unresolvable expressions instead of failing.
  */
 string getAPossibleValue(DataFlow::Node node) {
   // 1. Base Case: Literals
@@ -33,10 +34,10 @@ string getAPossibleValue(DataFlow::Node node) {
     result = getAPossibleValue(DataFlow::valueNode(assign.getRhs()))
   )
   or
-  // 4. Template Literals
+  // 4. Template Literals - with fallback for unresolvable parts
   exists(TemplateLiteral tl |
     tl = node.asExpr() and
-    result = getTemplateRecursive(tl, 0)
+    result = getTemplateWithFallback(tl, 0)
   )
   or
   // 4b. Arithmetic (Math only)
@@ -107,9 +108,50 @@ string getTemplateRecursive(TemplateLiteral tl, int i) {
   )
 }
 
+/**
+ * Helper for Template Literals with fallback - handles unresolvable variables
+ * Does NOT call getAPossibleValue to avoid circular recursion
+ */
+string getTemplateWithFallback(TemplateLiteral tl, int i) {
+  i = tl.getNumElement() and result = ""
+  or
+  exists(string head, string tail |
+    i < tl.getNumElement() and
+    tail = getTemplateWithFallback(tl, i + 1) and
+    (
+      // Static text parts
+      exists(TemplateElement te | te = tl.getElement(i) | head = te.getRawValue())
+      or
+      // Identifier fallback - just use the name wrapped
+      exists(Identifier id | id = tl.getElement(i) | head = "{" + id.getName() + "}")
+      or
+      // PropAccess fallback - extract property name (e.g., this.usersServiceBase -> {usersServiceBase})
+      exists(PropAccess pa | pa = tl.getElement(i) | head = "{" + pa.getPropertyName() + "}")
+      or
+      // Other expressions - use a placeholder
+      exists(Expr e | 
+        e = tl.getElement(i) and 
+        not e instanceof Identifier and 
+        not e instanceof PropAccess | 
+        head = "{...}"
+      )
+    ) and
+    result = head + tail
+  )
+}
+
 from MethodCallExpr axiosCall, DataFlow::Node sink, string url
 where
-  axiosCall.getReceiver().(Identifier).getName() = "axios" and
-  sink = DataFlow::valueNode(axiosCall.getArgument(0)) and
+  axiosCall.getReceiver().(Identifier).getName().matches("%axios%") and
+  (
+    // Try to get first argument (handles most cases including generic <T>)
+    sink = DataFlow::valueNode(axiosCall.getArgument(0))
+    or
+    // Fallback: if getArgument(0) fails, try through the arguments
+    exists(int i | i = 0 and sink = DataFlow::valueNode(axiosCall.getArgument(i)))
+  ) and
   url = getAPossibleValue(sink)
-select axiosCall, "Final URL: " + url
+select 
+  axiosCall.getLocation(),  
+  axiosCall.toString(),
+  "Final URL: " + url
