@@ -91,24 +91,6 @@ string getAPossibleValue(DataFlow::Node node) {
 }
 
 /**
- * Helper for Template Literals
- */
-string getTemplateRecursive(TemplateLiteral tl, int i) {
-  i = tl.getNumElement() and result = ""
-  or
-  exists(string head, string tail |
-    i < tl.getNumElement() and
-    tail = getTemplateRecursive(tl, i + 1) and
-    (
-      exists(TemplateElement te | te = tl.getElement(i) | head = te.getRawValue())
-      or
-      head = getAPossibleValue(DataFlow::valueNode(tl.getElement(i)))
-    ) and
-    result = head + tail
-  )
-}
-
-/**
  * Helper for Template Literals with fallback - handles unresolvable variables
  * Does NOT call getAPossibleValue to avoid circular recursion
  */
