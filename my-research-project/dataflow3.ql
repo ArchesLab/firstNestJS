@@ -104,13 +104,16 @@ string getTemplateWithFallback(TemplateLiteral tl, int i) {
       // Static text parts
       exists(TemplateElement te | te = tl.getElement(i) | head = te.getRawValue())
       or
-      // Identifier fallback - just use the name wrapped
+      // Try to recursively resolve any expression through getAPossibleValue
+      head = getAPossibleValue(DataFlow::valueNode(tl.getElement(i)))
+      or
+      // Fallback for identifiers that can't be resolved - use the name wrapped
       exists(Identifier id | id = tl.getElement(i) | head = "{" + id.getName() + "}")
       or
-      // PropAccess fallback - extract property name (e.g., this.usersServiceBase -> {usersServiceBase})
+      // Fallback for property access that can't be resolved - extract property name
       exists(PropAccess pa | pa = tl.getElement(i) | head = "{" + pa.getPropertyName() + "}")
       or
-      // Other expressions - use a placeholder
+      // Fallback for other unresolvable expressions - use placeholder
       exists(Expr e | 
         e = tl.getElement(i) and 
         not e instanceof Identifier and 
