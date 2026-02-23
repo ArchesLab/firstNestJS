@@ -1,11 +1,8 @@
-| test.ts:54:28:54:42 | axios.post(url) | Final URL: {NOTIFICATIONS_SERVICE_URL}/notifications/event-update |
-| test.ts:13:1:13:32 | axios.g ... oles/`) | Final URL: {CLUBS_SERVICE_URL}/clubs/roles/ |
-| test.ts:13:1:13:32 | axios.g ... ealth`) | Final URL: {DEV_URL}/health |
-| test.ts:13:1:13:32 | axios.g ... ealth`) | Final URL: {PROD_URL}/health |
-| test.ts:25:1:25:20 | axios.get(url) | Final URL: http://localhost:8010/status |
-| test.ts:25:1:25:20 | axios.get(loopedUrl) | Final URL: base/path/path/path |
-| test.ts:25:1:25:20 | axios.post(url) | Final URL: {NOTIFICATIONS_SERVICE_URL}/notify/${userId} |
-| test.ts:25:1:25:20 | axios.g ... ndpoint) | Final URL: {API_SERVICE_URL}/users/${userId} |
-| test.ts:25:1:25:20 | axios.g ... I_URL)) | Final URL: https://api.example.com/v1/data |
-| test.ts:25:1:25:20 | axios.p ... dpoint) | Final URL: https://api.test.com/users |
-| test.ts:25:1:25:20 | axios.get(finalUrl) | Final URL: https://backend.service.com/api/status |
+| test.ts:53:28:53:42 | axios.post(url) | Final URL: {NOTIFICATIONS_SERVICE_URL}/notifications/event-update |
+| test.ts:62:26:62:75 | axios.g ... oles/`) | Final URL: {CLUBS_SERVICE_URL}/clubs/roles/ |
+| test.ts:78:1:78:32 | axios.g ... ealth`) | Final URL: {DEV_URL}/health |
+| test.ts:78:1:78:32 | axios.g ... ealth`) | Final URL: {PROD_URL}/health |
+| test.ts:84:1:84:14 | axios.get(url) | Final URL: http://localhost:8010/status |
+| test.ts:91:1:91:20 | axios.get(loopedUrl) | Final URL: base/path/path/path
+| test.ts:126:1:126:25 | axios.g ... PI_URL) | Final URL: https://api.example.com/v1/data |
+| test.ts:139:1:139:19 | axios.get(finalUrl) | Final URL: https://backend.service.com/api/status |

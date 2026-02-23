@@ -41,15 +41,15 @@ string getAPossibleValue(DataFlow::Node node) {
   )
   or
   // 4b. Arithmetic (Math only)
-  exists(BinaryExpr be, float left, float right |
-    be = node.asExpr() and
-    be.getOperator() = "+" and
-    // Directly check if operands are numbers without calling getAPossibleValue recursively for strings
-    left = be.getLeftOperand().(NumberLiteral).getValue().toFloat() and
-    right = be.getRightOperand().(NumberLiteral).getValue().toFloat() and
-    result = (left + right).toString()
-  )
-  or
+  // exists(BinaryExpr be, float left, float right |
+  //   be = node.asExpr() and
+  //   be.getOperator() = "+" and
+  //   // Directly check if operands are numbers without calling getAPossibleValue recursively for strings
+  //   left = be.getLeftOperand().(NumberLiteral).getValue().toFloat() and
+  //   right = be.getRightOperand().(NumberLiteral).getValue().toFloat() and
+  //   result = (left + right).toString()
+  // )
+  //or
   // 4b. Smart Arithmetic (Handles 8010)
   exists(BinaryExpr add, string leftStr, string rightStr |
     add = node.asExpr() and
