@@ -1,0 +1,2 @@
+| function.ts:73:28:73:46 | function.ts:73 | axios.get(endpoint) | Final URL: ENV_LOOKUP{TEMP_URL}/api/data/Camilla_Host |
+| function.ts:73:28:73:46 | function.ts:73 | axios.get(endpoint) | Final URL: ENV_LOOKUP{TEMP_URL}/api/data/Tobias_Host |
