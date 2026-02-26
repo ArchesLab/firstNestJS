@@ -16,10 +16,10 @@ string getAPossibleValue(DataFlow::Node node) {
   // 1b. Fix: Use NumberLiteral instead of NumericLiteral
   result = node.asExpr().(NumberLiteral).getValue()
   or
-  // 2. Base Case: ConfigService.get('...') because it can't jump between files
+  // 2. Base Case: ConfigService.get('...') - Tag with ENV_LOOKUP to mark as environment variable
   exists(MethodCallExpr mc |
     mc.getMethodName() = "get" and
-    result = "{" + mc.getAnArgument().(StringLiteral).getValue() + "}" and
+    result = "ENV_LOOKUP{" + mc.getAnArgument().(StringLiteral).getValue() + "}" and
     node.asExpr() = mc
   )
   or

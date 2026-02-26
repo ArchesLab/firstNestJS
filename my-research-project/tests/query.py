@@ -32,8 +32,8 @@ def process_codeql_csv(csv_path, env_vars):
         reader = csv.reader(f)
         next(reader) 
 
-        print(f"\n{'CodeQL Match':<20} | {'Extracted Var':<25} | {'Resolved URL'}")
-        print("-" * 90)
+        print(f"\n{'Location':<30} | {'Extracted Env Vars':<35} | {'Resolved URL'}")
+        print("-" * 100)
         
         for row in reader:
             if len(row) < 2: 
@@ -50,33 +50,31 @@ def process_codeql_csv(csv_path, env_vars):
             
             if raw_url is None:
                 continue
-
-            # Find ALL variables in the URL
-            matches = re.findall(r"\{(.*?)\}", raw_url)
             
-            if not matches:
+            # Only process lines that contain ENV_LOOKUP
+            if "ENV_LOOKUP" not in raw_url:
+                continue
+
+            # Extract all ENV_LOOKUP{VAR_NAME} patterns
+            env_matches = re.findall(r"ENV_LOOKUP\{([^}]+)\}", raw_url)
+            
+            if not env_matches:
                 continue
             
-            # Check if ANY variable is invalid (not uppercase constant, or "...")
-            has_invalid = False
-            for var_name in matches:
-                if var_name == "...":
-                    has_invalid = True
+            # Resolve all ENV_LOOKUP variables to their actual values
+            resolved_url = raw_url.replace("Final URL: ", "")
+            all_found = True
+            
+            for env_var in env_matches:
+                if env_var not in env_vars:
+                    all_found = False
                     break
+                env_value = env_vars.get(env_var, "")
+                resolved_url = resolved_url.replace(f"ENV_LOOKUP{{{env_var}}}", env_value)
             
-            if has_invalid:
-                continue  # Skip URLs with any invalid placeholders
-            
-            # All variables are valid uppercase constants - now check if they exist in env
-            # For simplicity, we'll resolve the first one (or you can resolve all)
-            primary_var = matches[0]
-            
-            if primary_var not in env_vars:
-                continue  # Skip if the main variable isn't in env files
-            
-            env_value = env_vars.get(primary_var)
-            resolved_url = raw_url.replace(f"{{{primary_var}}}", env_value).replace("Final URL: ", "")
-            print(f"{call_info[:18]:<20} | {primary_var:<25} | {raw_url}")
+            if all_found:
+                # Print only if all environment variables were found and resolved
+                print(f"{call_info[:28]:<30} | {', '.join(env_matches):<35} | {resolved_url}")
 
 if __name__ == "__main__":
     # List all the different locations where your .env files are stored
@@ -89,6 +87,7 @@ if __name__ == "__main__":
     
     # Load all of them into one master dictionary
     master_env = load_all_envs(env_locations)
+    
     
     # Run the processor
     process_codeql_csv(r'C:\Users\mary\Clubs\Research\simple-app\my-research-project\codeql_results.csv', master_env)
