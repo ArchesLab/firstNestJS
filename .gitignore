@@ -1,3 +1,6 @@
 node_modules/
 dist/
 .env
+codeql/
+my-db/
+my-research-project/tests/tests.testproj

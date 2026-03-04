@@ -1,0 +1,4 @@
+id: capture-service-calls
+language: typescript
+rule:
+  pattern: "return this.$SERVICE.$SERVICE_METHOD($$$ARGS)"
