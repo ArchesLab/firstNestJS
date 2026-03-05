@@ -30,51 +30,54 @@ def process_codeql_csv(csv_path, env_vars):
 
     with open(csv_path, mode='r', encoding='utf-8') as f:
         reader = csv.reader(f)
-        next(reader) 
+        header = next(reader)  # Skip header
+        
+        print(f"DEBUG: Header columns: {header}")
+        print(f"DEBUG: Loaded env vars: {list(env_vars.keys())}")
 
         print(f"\n{'Location':<30} | {'Extracted Env Vars':<35} | {'Resolved URL'}")
         print("-" * 100)
         
+        seen_urls = set()  # Track already printed URLs
+        
         for row in reader:
-            if len(row) < 2: 
+            if len(row) < 4: 
                 continue
             
             call_info = row[0]
             
-            # Find the column that contains "Final URL:"
-            raw_url = None
-            for col in row[1:]:
-                if "Final URL:" in str(col):
-                    raw_url = col
-                    break
+            # The URL pattern is in the last column (col3)
+            raw_url = row[-1]
             
-            if raw_url is None:
+            if not raw_url:
                 continue
             
-            # Only process lines that contain ENV_LOOKUP
-            if "ENV_LOOKUP" not in raw_url:
-                continue
-
-            # Extract all ENV_LOOKUP{VAR_NAME} patterns
-            env_matches = re.findall(r"ENV_LOOKUP\{([^}]+)\}", raw_url)
+            # Extract uppercase env variable patterns like {USERS_SERVICE_URL}
+            # This ignores lowercase path params like {clubId}, {userId}
+            env_matches = re.findall(r"\{([A-Z][A-Z0-9_]*_URL)\}", raw_url)
             
             if not env_matches:
                 continue
             
-            # Resolve all ENV_LOOKUP variables to their actual values
-            resolved_url = raw_url.replace("Final URL: ", "")
+            # Resolve env variables to their actual values
+            resolved_url = raw_url
             all_found = True
             
             for env_var in env_matches:
                 if env_var not in env_vars:
+                    print(f"DEBUG: Missing env var: {env_var}")
                     all_found = False
                     break
                 env_value = env_vars.get(env_var, "")
-                resolved_url = resolved_url.replace(f"ENV_LOOKUP{{{env_var}}}", env_value)
+                # Wrap the resolved URL in curly braces: {http://localhost:3001}
+                resolved_url = resolved_url.replace(f"{{{env_var}}}", f"{{{env_value}}}")
             
             if all_found:
                 # Print only if all environment variables were found and resolved
-                print(f"{call_info[:28]:<30} | {', '.join(env_matches):<35} | {resolved_url}")
+                # Skip duplicates
+                if resolved_url not in seen_urls:
+                    seen_urls.add(resolved_url)
+                    print(f"{call_info[:28]:<30} | {', '.join(env_matches):<35} | {resolved_url}")
 
 if __name__ == "__main__":
     # List all the different locations where your .env files are stored
