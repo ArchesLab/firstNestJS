@@ -1,8 +1,0 @@
-| function.ts:41:28:41:46 | function.ts:41 | axios.get(endpoint) | Final URL: {TEMP_URL}/api/data/LocalHost |
-| function.ts:41:28:41:46 | function.ts:41 | axios.get(endpoint) | Final URL: {TEMP_URL}/api/data/{url} |
-| function.ts:41:28:41:46 | function.ts:41 | axios.get(endpoint) | Final URL: {TEMP_URL}{...}LocalHost |
-| function.ts:41:28:41:46 | function.ts:41 | axios.get(endpoint) | Final URL: {TEMP_URL}{...}{url} |
-| function.ts:41:28:41:46 | function.ts:41 | axios.get(endpoint) | Final URL: {input}/api/data/LocalHost |
-| function.ts:41:28:41:46 | function.ts:41 | axios.get(endpoint) | Final URL: {input}/api/data/{url} |
-| function.ts:41:28:41:46 | function.ts:41 | axios.get(endpoint) | Final URL: {input}{...}LocalHost |
-| function.ts:41:28:41:46 | function.ts:41 | axios.get(endpoint) | Final URL: {input}{...}{url} |

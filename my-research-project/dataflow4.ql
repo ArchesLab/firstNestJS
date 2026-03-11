@@ -1,8 +1,7 @@
 /**
  * @name ConfigService to Axios Global Flow
  * @description Tracks data flow from ConfigService.get() to axios calls using global taint tracking
- * @kind path-problem
- * @problem.severity info
+ * @kind table
  * @id js/config-to-axios-global
  */
 
@@ -31,13 +30,12 @@ module ConfigToAxiosConfig implements DataFlow::ConfigSig {
       pw.getBase().asExpr() instanceof ThisExpr and
       pr.getBase().asExpr() instanceof ThisExpr and
       pred = pw.getRhs() and
-      succ = pr
+      succ = pr 
     )
   }
 }
 
 module ConfigToAxios = TaintTracking::Global<ConfigToAxiosConfig>;
-import ConfigToAxios::PathGraph
 
 string reconstructTemplate(TemplateLiteral tl, int i) {
   i = tl.getNumElement() and result = ""
@@ -92,6 +90,6 @@ string resolveTemplateWithConfigKeys(DataFlow::Node sink) {
   )
 }
 
-from ConfigToAxios::PathNode source, ConfigToAxios::PathNode sink
-where ConfigToAxios::flowPath(source, sink)
-select sink.getNode(), source, sink, resolveTemplateWithConfigKeys(sink.getNode())
+from DataFlow::Node source, DataFlow::Node sink
+where ConfigToAxios::flow(source, sink)
+select source, sink, resolveTemplateWithConfigKeys(sink)
