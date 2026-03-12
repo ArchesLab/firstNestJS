@@ -37,50 +37,131 @@ module ConfigToAxiosConfig implements DataFlow::ConfigSig {
 
 module ConfigToAxios = TaintTracking::Global<ConfigToAxiosConfig>;
 
-string reconstructTemplate(TemplateLiteral tl, int i) {
+/**
+ * Resolves an expression to all its possible string values.
+ * Returns multiple results for branching (if/else, ternary).
+ */
+string resolveExprValue(Expr e) {
+  // Case 1: String literal - return the literal value directly
+  result = e.(StringLiteral).getValue()
+  or
+  // Case 2: ConfigService.get() call - wrap the config key in braces
+  exists(MethodCallExpr mc | mc = e |
+    mc.getMethodName() = "get" and
+    result = "{" + mc.getAnArgument().(StringLiteral).getValue() + "}"
+  )
+  or
+  // Case 3: Variable reference - trace back using SSA/data flow
+  exists(VarAccess va, Expr source |
+    va = e and
+    DataFlow::localFlowStep*(DataFlow::valueNode(source), DataFlow::valueNode(va)) and
+    not source instanceof VarAccess and
+    result = resolveExprValue(source)
+  )
+  or
+  // Case 4: Await expression - resolve the inner expression
+  result = resolveExprValue(e.(AwaitExpr).getOperand())
+  or
+  // Case 5: Function call - find return statements and resolve their values
+  exists(CallExpr call, Function f, ReturnStmt ret |
+    call = e and
+    f = call.getCallee().(VarAccess).getVariable().getAnAssignedExpr() and
+    ret.getContainer() = f and
+    result = resolveExprValue(ret.getExpr())
+  )
+  or
+  // Case 5b: Named function declaration call
+  exists(CallExpr call, FunctionDeclStmt f, ReturnStmt ret |
+    call = e and
+    f.getName() = call.getCalleeName() and
+    ret.getContainer() = f and
+    result = resolveExprValue(ret.getExpr())
+  )
+  or
+  // Case 6: Ternary/conditional expression - resolve both branches
+  exists(ConditionalExpr ce | ce = e |
+    result = resolveExprValue(ce.getConsequent()) or
+    result = resolveExprValue(ce.getAlternate())
+  )
+  or
+  // Case 7: LogicalOrExpr (x || y) - resolve both sides
+  exists(LogicalOrExpr lor | lor = e |
+    result = resolveExprValue(lor.getLeftOperand()) or
+    result = resolveExprValue(lor.getRightOperand())
+  )
+  or
+  // Case 8: this.property access - trace through property assignments
+  exists(PropAccess pa, AssignExpr assign |
+    pa = e and
+    pa.getBase() instanceof ThisExpr and
+    assign.getLhs().(PropAccess).getPropertyName() = pa.getPropertyName() and
+    assign.getLhs().(PropAccess).getBase() instanceof ThisExpr and
+    result = resolveExprValue(assign.getRhs())
+  )
+  or
+  // Case 9: Template literal - recursively resolve and concatenate
+  exists(TemplateLiteral tl | tl = e |
+    result = resolveTemplateElements(tl, 0)
+  )
+  or
+  // Fallback: if no other case matches, return the expression as a placeholder
+  not e instanceof StringLiteral and
+  not e instanceof MethodCallExpr and
+  not e instanceof VarAccess and
+  not e instanceof AwaitExpr and
+  not e instanceof CallExpr and
+  not e instanceof ConditionalExpr and
+  not e instanceof LogicalOrExpr and
+  not (e instanceof PropAccess and e.(PropAccess).getBase() instanceof ThisExpr) and
+  not e instanceof TemplateLiteral and
+  result = "{" + e.toString() + "}"
+}
+
+/**
+ * Recursively resolves template literal elements and concatenates them.
+ */
+string resolveTemplateElements(TemplateLiteral tl, int i) {
+  // Base case: no more elements
   i = tl.getNumElement() and result = ""
   or
+  // Recursive case: resolve current element and concatenate with rest
   exists(string head, string tail |
     i < tl.getNumElement() and
-    tail = reconstructTemplate(tl, i + 1) and
+    tail = resolveTemplateElements(tl, i + 1) and
     (
-      exists(TemplateElement te | te = tl.getElement(i) | head = te.getRawValue())
+      // Static template element (literal string part)
+      head = tl.getElement(i).(TemplateElement).getRawValue()
       or
-      exists(PropAccess pa, AssignExpr assign, MethodCallExpr mc |
-        pa = tl.getElement(i) and
-        pa.getBase() instanceof ThisExpr and
-        assign.getLhs().(PropAccess).getPropertyName() = pa.getPropertyName() and
-        assign.getLhs().(PropAccess).getBase() instanceof ThisExpr and
-        DataFlow::localFlowStep*(DataFlow::valueNode(mc), DataFlow::valueNode(assign.getRhs())) and
-        mc.getMethodName() = "get" and
-        head = "{" + mc.getAnArgument().(StringLiteral).getValue() + "}"
-      )
-      or
-      exists(Expr e |
-        e = tl.getElement(i) and
-        not (e instanceof PropAccess and e.(PropAccess).getBase() instanceof ThisExpr) and
-        not e instanceof TemplateElement |
-        head = "{" + e.toString() + "}"
+      // Dynamic expression - resolve it (exclude TemplateElement by requiring a resolved value)
+      exists(Expr elem |
+        elem = tl.getElement(i) and
+        head = resolveExprValue(elem)
       )
     ) and
     result = head + tail
   )
 }
 
+/**
+ * Resolves the URL for a given sink node.
+ */
 string resolveTemplateWithConfigKeys(DataFlow::Node sink) {
   exists(MethodCallExpr axiosCall |
     DataFlow::valueNode(axiosCall.getArgument(0)) = sink |
+    // Direct template literal argument
     exists(TemplateLiteral tl |
       tl = axiosCall.getArgument(0) and
-      result = reconstructTemplate(tl, 0)
+      result = resolveTemplateElements(tl, 0)
     )
     or
+    // Variable that flows from a template literal
     exists(DataFlow::Node mid, TemplateLiteral tl |
       DataFlow::valueNode(axiosCall.getArgument(0)) = mid and
       DataFlow::localFlowStep+(DataFlow::valueNode(tl), mid) and
-      result = reconstructTemplate(tl, 0)
+      result = resolveTemplateElements(tl, 0)
     )
     or
+    // Fallback for unresolved cases
     not exists(TemplateLiteral tl | tl = axiosCall.getArgument(0)) and
     not exists(DataFlow::Node mid, TemplateLiteral tl |
       DataFlow::valueNode(axiosCall.getArgument(0)) = mid and
