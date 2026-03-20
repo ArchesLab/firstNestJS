@@ -1,0 +1,22 @@
+| function.ts:44:19:44:47 | configS ... P_URL') | TEMP_URL | function.ts:45:38:45:65 | `${inpu ... dpoint` | {TEMP_URL}/api/data/endpoint |
+| function.ts:49:19:49:55 | configS ... E_URL') | TEMP_SERVICE_URL | function.ts:50:38:50:65 | `${inpu ... dpoint` | {TEMP_SERVICE_URL}/api/data/endpoint |
+| function.ts:54:19:54:55 | configS ... E_URL') | TEMP_SERVICE_URL | function.ts:56:38:56:67 | `${temp ... dpoint` | ANOTHER_SERVICE_URL/api/data/endpoint |
+| function.ts:54:19:54:55 | configS ... E_URL') | TEMP_SERVICE_URL | function.ts:56:38:56:67 | `${temp ... dpoint` | {TEMP_SERVICE_URL}/api/data/endpoint |
+| function.ts:55:30:55:50 | 'ANOTHE ... CE_URL' | Unknown-Key | function.ts:56:38:56:67 | `${temp ... dpoint` | ANOTHER_SERVICE_URL/api/data/endpoint |
+| function.ts:55:30:55:50 | 'ANOTHE ... CE_URL' | Unknown-Key | function.ts:56:38:56:67 | `${temp ... dpoint` | {TEMP_SERVICE_URL}/api/data/endpoint |
+| function.ts:63:25:63:74 | this.co ... E_URL') | TEMP_SERVICE_URL | function.ts:68:42:68:80 | `${this ... dpoint` | /api/data/endpoint |
+| function.ts:63:25:63:74 | this.co ... E_URL') | TEMP_SERVICE_URL | function.ts:68:42:68:80 | `${this ... dpoint` | {TEMP_SERVICE_URL}/api/data/endpoint |
+| function.ts:63:79:63:80 | '' | Unknown-Key | function.ts:68:42:68:80 | `${this ... dpoint` | /api/data/endpoint |
+| function.ts:63:79:63:80 | '' | Unknown-Key | function.ts:68:42:68:80 | `${this ... dpoint` | {TEMP_SERVICE_URL}/api/data/endpoint |
+| function.ts:75:16:75:28 | 'CamillaHost' | Unknown-Key | function.ts:90:38:90:45 | endpoint | {TEMP2_SERVICE_URL}/api/data/CamillaHost |
+| function.ts:75:16:75:28 | 'CamillaHost' | Unknown-Key | function.ts:90:38:90:45 | endpoint | {TEMP2_SERVICE_URL}/api/data/LocalHost |
+| function.ts:75:16:75:28 | 'CamillaHost' | Unknown-Key | function.ts:90:38:90:45 | endpoint | {TEMP2_SERVICE_URL}/api/data/TobiasHost |
+| function.ts:76:12:76:23 | 'TobiasHost' | Unknown-Key | function.ts:90:38:90:45 | endpoint | {TEMP2_SERVICE_URL}/api/data/CamillaHost |
+| function.ts:76:12:76:23 | 'TobiasHost' | Unknown-Key | function.ts:90:38:90:45 | endpoint | {TEMP2_SERVICE_URL}/api/data/LocalHost |
+| function.ts:76:12:76:23 | 'TobiasHost' | Unknown-Key | function.ts:90:38:90:45 | endpoint | {TEMP2_SERVICE_URL}/api/data/TobiasHost |
+| function.ts:83:15:83:25 | 'LocalHost' | Unknown-Key | function.ts:90:38:90:45 | endpoint | {TEMP2_SERVICE_URL}/api/data/CamillaHost |
+| function.ts:83:15:83:25 | 'LocalHost' | Unknown-Key | function.ts:90:38:90:45 | endpoint | {TEMP2_SERVICE_URL}/api/data/LocalHost |
+| function.ts:83:15:83:25 | 'LocalHost' | Unknown-Key | function.ts:90:38:90:45 | endpoint | {TEMP2_SERVICE_URL}/api/data/TobiasHost |
+| function.ts:88:19:88:56 | configS ... E_URL') | TEMP2_SERVICE_URL | function.ts:90:38:90:45 | endpoint | {TEMP2_SERVICE_URL}/api/data/CamillaHost |
+| function.ts:88:19:88:56 | configS ... E_URL') | TEMP2_SERVICE_URL | function.ts:90:38:90:45 | endpoint | {TEMP2_SERVICE_URL}/api/data/LocalHost |
+| function.ts:88:19:88:56 | configS ... E_URL') | TEMP2_SERVICE_URL | function.ts:90:38:90:45 | endpoint | {TEMP2_SERVICE_URL}/api/data/TobiasHost |

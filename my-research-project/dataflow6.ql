@@ -9,13 +9,6 @@ import javascript
 import semmle.javascript.dataflow.TaintTracking
 
 module ConfigToAxiosConfig implements DataFlow::ConfigSig {
-//   predicate isSource(DataFlow::Node source) {
-//     exists(MethodCallExpr mc |
-//       mc.getMethodName() = "get" and
-//       mc.getAnArgument().(StringLiteral).getValue().toUpperCase().matches("%SERVICE_URL%") and
-//       source = DataFlow::valueNode(mc)
-//     )
-//   }
   predicate isSource(DataFlow::Node source) {
     exists(DataFlow::MethodCallNode mc |
       // 1. The method being called is named 'get'
@@ -35,17 +28,19 @@ module ConfigToAxiosConfig implements DataFlow::ConfigSig {
       
       // 3. The source is the result of this call
       source = mc
+      or
+      exists(StringLiteral sl |
+        source.asExpr() = sl
+      )
     )
   }
 
   predicate isSink(DataFlow::Node sink) {
     exists(MethodCallExpr axiosCall |
-      (axiosCall.getReceiver().(Identifier).getName() = "axios" or 
-       axiosCall.getMethodName().matches("get|post|put|delete")) and
+      axiosCall.getReceiver().(Identifier).getName() = "axios" and
       sink = DataFlow::valueNode(axiosCall.getArgument(0))
     )
   }
-
   predicate isAdditionalFlowStep(DataFlow::Node pred, DataFlow::Node succ) {
     exists(DataFlow::PropWrite pw, DataFlow::PropRead pr |
       pw.getPropertyName() = pr.getPropertyName() and
@@ -170,9 +165,17 @@ string resolveUrlAtSink(DataFlow::Node sink) {
 
 from DataFlow::Node source, DataFlow::Node sink
 where ConfigToAxios::flow(source, sink)
+// select 
+//   source, 
+//   source.asExpr().(MethodCallExpr).getAnArgument().(StringLiteral).getValue() as configKey,
+//   sink, 
+//   resolveUrlAtSink(sink) as resolvedEndpoint
 select 
   source, 
-  source.asExpr().(MethodCallExpr).getAnArgument().(StringLiteral).getValue() as configKey,
+  any(string s | 
+    if source.asExpr() instanceof MethodCallExpr 
+    then s = source.asExpr().(MethodCallExpr).getAnArgument().(StringLiteral).getValue()
+    else s = "Unknown-Key"
+  ) as configKey,
   sink, 
   resolveUrlAtSink(sink) as resolvedEndpoint
-

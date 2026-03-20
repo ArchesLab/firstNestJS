@@ -1,23 +1,56 @@
-| test.ts:22:22:22:80 | this.co ... E_URL') | test.ts:37:39:37:41 | url | {NOTIFICATIONS_SERVICE_URL}/notifications/event-update |
-| test.ts:22:22:22:80 | this.co ... E_URL') | test.ts:154:39:154:41 | url | {NOTIFICATIONS_SERVICE_URL}/notifications/event-update |
-| test.ts:22:22:22:80 | this.co ... E_URL') | test.ts:187:39:187:41 | url | {NOTIFICATIONS_SERVICE_URL}/notifications/event-update |
-| test.ts:24:21:24:71 | this.co ... E_URL') | test.ts:46:36:46:74 | `${this ... roles/` | {CLUBS_SERVICE_URL}/clubs/roles/ |
-| test.ts:24:21:24:71 | this.co ... E_URL') | test.ts:163:36:163:74 | `${this ... roles/` | {CLUBS_SERVICE_URL}/clubs/roles/ |
-| test.ts:99:22:99:80 | this.co ... E_URL') | test.ts:112:22:112:24 | url | {NOTIFICATIONS_SERVICE_URL}/notify/{userId} |
-| test.ts:99:22:99:80 | this.co ... E_URL') | test.ts:259:22:259:24 | url | {NOTIFICATIONS_SERVICE_URL}/notify/{userId} |
-| test.ts:100:20:100:68 | this.co ... E_URL') | test.ts:117:38:117:45 | endpoint | {API_SERVICE_URL}/users/{userId} |
-| test.ts:100:20:100:68 | this.co ... E_URL') | test.ts:264:38:264:45 | endpoint | {API_SERVICE_URL}/users/{userId} |
-| test.ts:147:33:147:91 | this.co ... E_URL') | test.ts:37:39:37:41 | url | {NOTIFICATIONS_SERVICE_URL}/notifications/event-update |
-| test.ts:147:33:147:91 | this.co ... E_URL') | test.ts:154:39:154:41 | url | {NOTIFICATIONS_SERVICE_URL}/notifications/event-update |
-| test.ts:147:33:147:91 | this.co ... E_URL') | test.ts:187:39:187:41 | url | {NOTIFICATIONS_SERVICE_URL}/notifications/event-update |
-| test.ts:149:29:149:79 | this.co ... E_URL') | test.ts:46:36:46:74 | `${this ... roles/` | {CLUBS_SERVICE_URL}/clubs/roles/ |
-| test.ts:149:29:149:79 | this.co ... E_URL') | test.ts:163:36:163:74 | `${this ... roles/` | {CLUBS_SERVICE_URL}/clubs/roles/ |
-| test.ts:180:33:180:91 | this.co ... E_URL') | test.ts:37:39:37:41 | url | {NOTIFICATIONS_SERVICE_URL}/notifications/event-update |
-| test.ts:180:33:180:91 | this.co ... E_URL') | test.ts:154:39:154:41 | url | {NOTIFICATIONS_SERVICE_URL}/notifications/event-update |
-| test.ts:180:33:180:91 | this.co ... E_URL') | test.ts:187:39:187:41 | url | {NOTIFICATIONS_SERVICE_URL}/notifications/event-update |
-| test.ts:182:29:182:79 | this.co ... E_URL') | test.ts:46:36:46:74 | `${this ... roles/` | {CLUBS_SERVICE_URL}/clubs/roles/ |
-| test.ts:182:29:182:79 | this.co ... E_URL') | test.ts:163:36:163:74 | `${this ... roles/` | {CLUBS_SERVICE_URL}/clubs/roles/ |
-| test.ts:246:22:246:80 | this.co ... E_URL') | test.ts:112:22:112:24 | url | {NOTIFICATIONS_SERVICE_URL}/notify/{userId} |
-| test.ts:246:22:246:80 | this.co ... E_URL') | test.ts:259:22:259:24 | url | {NOTIFICATIONS_SERVICE_URL}/notify/{userId} |
-| test.ts:247:20:247:68 | this.co ... E_URL') | test.ts:117:38:117:45 | endpoint | {API_SERVICE_URL}/users/{userId} |
-| test.ts:247:20:247:68 | this.co ... E_URL') | test.ts:264:38:264:45 | endpoint | {API_SERVICE_URL}/users/{userId} |
+| test.ts:22:22:22:79 | this.co ... E_URL') | TEST1_NOTIF__SERVICE_URL | test.ts:37:39:37:41 | url | /notifications/event-update |
+| test.ts:22:22:22:79 | this.co ... E_URL') | TEST1_NOTIF__SERVICE_URL | test.ts:37:39:37:41 | url | {TEST1_NOTIF__SERVICE_URL}/notifications/event-update |
+| test.ts:22:84:22:85 | '' | Unknown-Key | test.ts:37:39:37:41 | url | /notifications/event-update |
+| test.ts:22:84:22:85 | '' | Unknown-Key | test.ts:37:39:37:41 | url | {TEST1_NOTIF__SERVICE_URL}/notifications/event-update |
+| test.ts:24:21:24:76 | this.co ... E_URL') | TEST1CLUBS_SERVICE_URL | test.ts:46:36:46:74 | `${this ... roles/` | /clubs/roles/ |
+| test.ts:24:21:24:76 | this.co ... E_URL') | TEST1CLUBS_SERVICE_URL | test.ts:46:36:46:74 | `${this ... roles/` | {TEST1CLUBS_SERVICE_URL}/clubs/roles/ |
+| test.ts:24:81:24:82 | '' | Unknown-Key | test.ts:46:36:46:74 | `${this ... roles/` | /clubs/roles/ |
+| test.ts:24:81:24:82 | '' | Unknown-Key | test.ts:46:36:46:74 | `${this ... roles/` | {TEST1CLUBS_SERVICE_URL}/clubs/roles/ |
+| test.ts:58:17:58:39 | "TEST2P ... CE_URL" | Unknown-Key | test.ts:62:11:62:31 | `${bran ... health` | TEST2DEV_SERVICE_URL/health |
+| test.ts:58:17:58:39 | "TEST2P ... CE_URL" | Unknown-Key | test.ts:62:11:62:31 | `${bran ... health` | TEST2PROD_SERVICE_URL/health |
+| test.ts:60:17:60:38 | "TEST2D ... CE_URL" | Unknown-Key | test.ts:62:11:62:31 | `${bran ... health` | TEST2DEV_SERVICE_URL/health |
+| test.ts:60:17:60:38 | "TEST2D ... CE_URL" | Unknown-Key | test.ts:62:11:62:31 | `${bran ... health` | TEST2PROD_SERVICE_URL/health |
+| test.ts:67:10:67:21 | 'TEST2A_URL' | Unknown-Key | test.ts:71:11:71:35 | `${bran ... test2a` | TEST2A_URL/health/test2a |
+| test.ts:80:17:80:28 | "test4/path" | Unknown-Key | test.ts:84:11:84:19 | loopedUrl | test4/path |
+| test.ts:82:18:82:24 | "/base" | Unknown-Key | test.ts:84:11:84:19 | loopedUrl | test4/path |
+| test.ts:94:22:94:72 | this.co ... E_URL') | TEST5_SERVICE_URL | test.ts:107:22:107:24 | url | /notify/{userId} |
+| test.ts:94:22:94:72 | this.co ... E_URL') | TEST5_SERVICE_URL | test.ts:107:22:107:24 | url | {TEST5_SERVICE_URL}/notify/{userId} |
+| test.ts:94:77:94:78 | '' | Unknown-Key | test.ts:107:22:107:24 | url | /notify/{userId} |
+| test.ts:94:77:94:78 | '' | Unknown-Key | test.ts:107:22:107:24 | url | {TEST5_SERVICE_URL}/notify/{userId} |
+| test.ts:95:20:95:70 | this.co ... E_URL') | TEST5_SERVICE_URL | test.ts:112:38:112:45 | endpoint | /users/{userId} |
+| test.ts:95:20:95:70 | this.co ... E_URL') | TEST5_SERVICE_URL | test.ts:112:38:112:45 | endpoint | {TEST5_SERVICE_URL}/users/{userId} |
+| test.ts:95:75:95:76 | '' | Unknown-Key | test.ts:112:38:112:45 | endpoint | /users/{userId} |
+| test.ts:95:75:95:76 | '' | Unknown-Key | test.ts:112:38:112:45 | endpoint | {TEST5_SERVICE_URL}/users/{userId} |
+| test.ts:118:24:118:54 | "https: ... /test6" | Unknown-Key | test.ts:119:11:119:24 | SIMPLE_API_URL | https://api.example.com/test6 |
+| test.ts:125:38:125:44 | "users" | Unknown-Key | test.ts:126:12:126:22 | apiEndpoint | https://test7/{resource} |
+| test.ts:129:21:129:43 | "https: ... /test8" | Unknown-Key | test.ts:132:11:132:18 | finalUrl | https://backend/test8/api |
+| test.ts:131:30:131:35 | "/api" | Unknown-Key | test.ts:132:11:132:18 | finalUrl | https://backend/test8/api |
+| test.ts:142:35:142:99 | this.co ... E_URL') | TEST9_NOTIFICATIONS_SERVICE_URL | test.ts:149:39:149:41 | url | /notifications |
+| test.ts:142:35:142:99 | this.co ... E_URL') | TEST9_NOTIFICATIONS_SERVICE_URL | test.ts:149:39:149:41 | url | {TEST9_NOTIFICATIONS_SERVICE_URL}/notifications |
+| test.ts:142:104:142:105 | '' | Unknown-Key | test.ts:149:39:149:41 | url | /notifications |
+| test.ts:142:104:142:105 | '' | Unknown-Key | test.ts:149:39:149:41 | url | {TEST9_NOTIFICATIONS_SERVICE_URL}/notifications |
+| test.ts:144:27:144:83 | this.co ... E_URL') | TEST9_CLUBS_SERVICE_URL | test.ts:158:36:158:65 | `${this ... /clubs` | /clubs |
+| test.ts:144:27:144:83 | this.co ... E_URL') | TEST9_CLUBS_SERVICE_URL | test.ts:158:36:158:65 | `${this ... /clubs` | {TEST9_CLUBS_SERVICE_URL}/clubs |
+| test.ts:144:88:144:89 | '' | Unknown-Key | test.ts:158:36:158:65 | `${this ... /clubs` | /clubs |
+| test.ts:144:88:144:89 | '' | Unknown-Key | test.ts:158:36:158:65 | `${this ... /clubs` | {TEST9_CLUBS_SERVICE_URL}/clubs |
+| test.ts:175:36:175:101 | this.co ... E_URL') | TEST10_NOTIFICATIONS_SERVICE_URL | test.ts:182:39:182:41 | url | /notifications |
+| test.ts:175:36:175:101 | this.co ... E_URL') | TEST10_NOTIFICATIONS_SERVICE_URL | test.ts:182:39:182:41 | url | {TEST10_NOTIFICATIONS_SERVICE_URL}/notifications |
+| test.ts:175:106:175:107 | '' | Unknown-Key | test.ts:182:39:182:41 | url | /notifications |
+| test.ts:175:106:175:107 | '' | Unknown-Key | test.ts:182:39:182:41 | url | {TEST10_NOTIFICATIONS_SERVICE_URL}/notifications |
+| test.ts:189:20:189:58 | configS ... E_URL') | TEST11_SERVICE_URL | test.ts:191:19:191:21 | url | {url} |
+| test.ts:197:19:197:53 | configS ... I_URL') | TEST12_API_URL | test.ts:199:21:199:23 | url | http://default.com |
+| test.ts:197:19:197:53 | configS ... I_URL') | TEST12_API_URL | test.ts:199:21:199:23 | url | {TEST12_API_URL} |
+| test.ts:198:26:198:45 | "http://default.com" | Unknown-Key | test.ts:199:21:199:23 | url | http://default.com |
+| test.ts:198:26:198:45 | "http://default.com" | Unknown-Key | test.ts:199:21:199:23 | url | {TEST12_API_URL} |
+| test.ts:207:19:207:49 | config. ... M_URL') | TEST13_RANDOM_URL | test.ts:218:21:218:31 | this.apiUrl |  |
+| test.ts:207:19:207:49 | config. ... M_URL') | TEST13_RANDOM_URL | test.ts:218:21:218:31 | this.apiUrl | {TEST13_RANDOM_URL} |
+| test.ts:207:54:207:55 | '' | Unknown-Key | test.ts:218:21:218:31 | this.apiUrl |  |
+| test.ts:207:54:207:55 | '' | Unknown-Key | test.ts:218:21:218:31 | this.apiUrl | {TEST13_RANDOM_URL} |
+| test.ts:229:22:229:87 | this.co ... E_URL') | TEST14_NOTIFICATIONS_SERVICE_URL | test.ts:242:22:242:24 | url | /notify/{userId} |
+| test.ts:229:22:229:87 | this.co ... E_URL') | TEST14_NOTIFICATIONS_SERVICE_URL | test.ts:242:22:242:24 | url | {TEST14_NOTIFICATIONS_SERVICE_URL}/notify/{userId} |
+| test.ts:229:92:229:93 | '' | Unknown-Key | test.ts:242:22:242:24 | url | /notify/{userId} |
+| test.ts:229:92:229:93 | '' | Unknown-Key | test.ts:242:22:242:24 | url | {TEST14_NOTIFICATIONS_SERVICE_URL}/notify/{userId} |
+| test.ts:230:20:230:75 | this.co ... E_URL') | TEST14_API_SERVICE_URL | test.ts:247:38:247:45 | endpoint | /users/{userId} |
+| test.ts:230:20:230:75 | this.co ... E_URL') | TEST14_API_SERVICE_URL | test.ts:247:38:247:45 | endpoint | {TEST14_API_SERVICE_URL}/users/{userId} |
+| test.ts:230:80:230:81 | '' | Unknown-Key | test.ts:247:38:247:45 | endpoint | /users/{userId} |
+| test.ts:230:80:230:81 | '' | Unknown-Key | test.ts:247:38:247:45 | endpoint | {TEST14_API_SERVICE_URL}/users/{userId} |
