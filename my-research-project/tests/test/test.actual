@@ -1,79 +1,56 @@
-| test.ts:37:28:37:42 | test.ts:37 | axios.post(url) | Final URL: /notifications/event-update |
-| test.ts:37:28:37:42 | test.ts:37 | axios.post(url) | Final URL: {...} |
-| test.ts:37:28:37:42 | test.ts:37 | axios.post(url) | Final URL: {NOTIFICATIONS_SERVICE_URL}/notifications/event-update |
-| test.ts:37:28:37:42 | test.ts:37 | axios.post(url) | Final URL: {NOTIFICATIONS_SERVICE_URL}{...} |
-| test.ts:37:28:37:42 | test.ts:37 | axios.post(url) | Final URL: {notificationsBaseUrl}/notifications/event-update |
-| test.ts:37:28:37:42 | test.ts:37 | axios.post(url) | Final URL: {notificationsBaseUrl}{...} |
-| test.ts:46:26:46:75 | test.ts:46 | axios.g ... oles/`) | Final URL: /clubs/roles/ |
-| test.ts:46:26:46:75 | test.ts:46 | axios.g ... oles/`) | Final URL: {...} |
-| test.ts:46:26:46:75 | test.ts:46 | axios.g ... oles/`) | Final URL: {CLUBS_SERVICE_URL}/clubs/roles/ |
-| test.ts:46:26:46:75 | test.ts:46 | axios.g ... oles/`) | Final URL: {CLUBS_SERVICE_URL}{...} |
-| test.ts:46:26:46:75 | test.ts:46 | axios.g ... oles/`) | Final URL: {clubsServiceBase}/clubs/roles/ |
-| test.ts:46:26:46:75 | test.ts:46 | axios.g ... oles/`) | Final URL: {clubsServiceBase}{...} |
-| test.ts:62:1:62:32 | test.ts:62 | axios.g ... ealth`) | Final URL: {DEV_URL}/health |
-| test.ts:62:1:62:32 | test.ts:62 | axios.g ... ealth`) | Final URL: {DEV_URL}{...} |
-| test.ts:62:1:62:32 | test.ts:62 | axios.g ... ealth`) | Final URL: {PROD_URL}/health |
-| test.ts:62:1:62:32 | test.ts:62 | axios.g ... ealth`) | Final URL: {PROD_URL}{...} |
-| test.ts:62:1:62:32 | test.ts:62 | axios.g ... ealth`) | Final URL: {branchUrl}/health |
-| test.ts:62:1:62:32 | test.ts:62 | axios.g ... ealth`) | Final URL: {branchUrl}{...} |
-| test.ts:76:1:76:29 | test.ts:76 | axios.g ... ealth`) | Final URL: {branch}/health |
-| test.ts:76:1:76:29 | test.ts:76 | axios.g ... ealth`) | Final URL: {branch}{...} |
-| test.ts:82:1:82:14 | test.ts:82 | axios.get(url) | Final URL: http://localhost:8010/status |
-| test.ts:82:1:82:14 | test.ts:82 | axios.get(url) | Final URL: http://localhost:8010{...} |
-| test.ts:82:1:82:14 | test.ts:82 | axios.get(url) | Final URL: http://localhost:{port}/status |
-| test.ts:82:1:82:14 | test.ts:82 | axios.get(url) | Final URL: http://localhost:{port}{...} |
-| test.ts:82:1:82:14 | test.ts:82 | axios.get(url) | Final URL: {...}8010/status |
-| test.ts:82:1:82:14 | test.ts:82 | axios.get(url) | Final URL: {...}8010{...} |
-| test.ts:82:1:82:14 | test.ts:82 | axios.get(url) | Final URL: {...}{port}/status |
-| test.ts:82:1:82:14 | test.ts:82 | axios.get(url) | Final URL: {...}{port}{...} |
-| test.ts:89:1:89:20 | test.ts:89 | axios.get(loopedUrl) | Final URL: base |
-| test.ts:112:11:112:25 | test.ts:112 | axios.post(url) | Final URL: /notify/{userId} |
-| test.ts:112:11:112:25 | test.ts:112 | axios.post(url) | Final URL: {...}{userId} |
-| test.ts:112:11:112:25 | test.ts:112 | axios.post(url) | Final URL: {NOTIFICATIONS_SERVICE_URL}/notify/{userId} |
-| test.ts:112:11:112:25 | test.ts:112 | axios.post(url) | Final URL: {NOTIFICATIONS_SERVICE_URL}{...}{userId} |
-| test.ts:112:11:112:25 | test.ts:112 | axios.post(url) | Final URL: {notificationsBaseURL}/notify/{userId} |
-| test.ts:112:11:112:25 | test.ts:112 | axios.post(url) | Final URL: {notificationsBaseURL}{...}{userId} |
-| test.ts:117:28:117:46 | test.ts:117 | axios.get(endpoint) | Final URL: /users/{userId} |
-| test.ts:117:28:117:46 | test.ts:117 | axios.get(endpoint) | Final URL: {...}{userId} |
-| test.ts:117:28:117:46 | test.ts:117 | axios.get(endpoint) | Final URL: {API_SERVICE_URL}/users/{userId} |
-| test.ts:117:28:117:46 | test.ts:117 | axios.get(endpoint) | Final URL: {API_SERVICE_URL}{...}{userId} |
-| test.ts:117:28:117:46 | test.ts:117 | axios.get(endpoint) | Final URL: {apiBaseURL}/users/{userId} |
-| test.ts:117:28:117:46 | test.ts:117 | axios.get(endpoint) | Final URL: {apiBaseURL}{...}{userId} |
-| test.ts:124:1:124:25 | test.ts:124 | axios.g ... PI_URL) | Final URL: https://api.example.com/v1/data |
-| test.ts:137:1:137:19 | test.ts:137 | axios.get(finalUrl) | Final URL: https://backend.service.com/api/status |
-| test.ts:154:28:154:42 | test.ts:154 | axios.post(url) | Final URL: /notifications/event-update |
-| test.ts:154:28:154:42 | test.ts:154 | axios.post(url) | Final URL: {...} |
-| test.ts:154:28:154:42 | test.ts:154 | axios.post(url) | Final URL: {NOTIFICATIONS_SERVICE_URL}/notifications/event-update |
-| test.ts:154:28:154:42 | test.ts:154 | axios.post(url) | Final URL: {NOTIFICATIONS_SERVICE_URL}{...} |
-| test.ts:154:28:154:42 | test.ts:154 | axios.post(url) | Final URL: {notificationsBaseUrl}/notifications/event-update |
-| test.ts:154:28:154:42 | test.ts:154 | axios.post(url) | Final URL: {notificationsBaseUrl}{...} |
-| test.ts:163:26:163:75 | test.ts:163 | axios.g ... oles/`) | Final URL: /clubs/roles/ |
-| test.ts:163:26:163:75 | test.ts:163 | axios.g ... oles/`) | Final URL: {...} |
-| test.ts:163:26:163:75 | test.ts:163 | axios.g ... oles/`) | Final URL: {CLUBS_SERVICE_URL}/clubs/roles/ |
-| test.ts:163:26:163:75 | test.ts:163 | axios.g ... oles/`) | Final URL: {CLUBS_SERVICE_URL}{...} |
-| test.ts:163:26:163:75 | test.ts:163 | axios.g ... oles/`) | Final URL: {clubsServiceBase}/clubs/roles/ |
-| test.ts:163:26:163:75 | test.ts:163 | axios.g ... oles/`) | Final URL: {clubsServiceBase}{...} |
-| test.ts:187:28:187:42 | test.ts:187 | axios.post(url) | Final URL: /notifications/event-update |
-| test.ts:187:28:187:42 | test.ts:187 | axios.post(url) | Final URL: {...} |
-| test.ts:187:28:187:42 | test.ts:187 | axios.post(url) | Final URL: {NOTIFICATIONS_SERVICE_URL}/notifications/event-update |
-| test.ts:187:28:187:42 | test.ts:187 | axios.post(url) | Final URL: {NOTIFICATIONS_SERVICE_URL}{...} |
-| test.ts:187:28:187:42 | test.ts:187 | axios.post(url) | Final URL: {notificationsBaseUrl}/notifications/event-update |
-| test.ts:187:28:187:42 | test.ts:187 | axios.post(url) | Final URL: {notificationsBaseUrl}{...} |
-| test.ts:199:12:199:25 | test.ts:199 | axios.get(url) | Final URL: https://api.com/user/{userId} |
-| test.ts:199:12:199:25 | test.ts:199 | axios.get(url) | Final URL: {...}{userId} |
-| test.ts:215:11:215:24 | test.ts:215 | axios.get(url) | Final URL: http://default.com |
-| test.ts:215:11:215:24 | test.ts:215 | axios.get(url) | Final URL: {API_URL} |
-| test.ts:234:11:234:32 | test.ts:234 | axios.g ... apiUrl) | Final URL:  |
-| test.ts:234:11:234:32 | test.ts:234 | axios.g ... apiUrl) | Final URL: {RANDOM_URL} |
-| test.ts:259:11:259:25 | test.ts:259 | axios.post(url) | Final URL: /notify/{userId} |
-| test.ts:259:11:259:25 | test.ts:259 | axios.post(url) | Final URL: {...}{userId} |
-| test.ts:259:11:259:25 | test.ts:259 | axios.post(url) | Final URL: {NOTIFICATIONS_SERVICE_URL}/notify/{userId} |
-| test.ts:259:11:259:25 | test.ts:259 | axios.post(url) | Final URL: {NOTIFICATIONS_SERVICE_URL}{...}{userId} |
-| test.ts:259:11:259:25 | test.ts:259 | axios.post(url) | Final URL: {notificationsBaseURL}/notify/{userId} |
-| test.ts:259:11:259:25 | test.ts:259 | axios.post(url) | Final URL: {notificationsBaseURL}{...}{userId} |
-| test.ts:264:28:264:46 | test.ts:264 | axios.get(endpoint) | Final URL: /users/{userId} |
-| test.ts:264:28:264:46 | test.ts:264 | axios.get(endpoint) | Final URL: {...}{userId} |
-| test.ts:264:28:264:46 | test.ts:264 | axios.get(endpoint) | Final URL: {API_SERVICE_URL}/users/{userId} |
-| test.ts:264:28:264:46 | test.ts:264 | axios.get(endpoint) | Final URL: {API_SERVICE_URL}{...}{userId} |
-| test.ts:264:28:264:46 | test.ts:264 | axios.get(endpoint) | Final URL: {apiBaseURL}/users/{userId} |
-| test.ts:264:28:264:46 | test.ts:264 | axios.get(endpoint) | Final URL: {apiBaseURL}{...}{userId} |
+| test.ts:22:22:22:79 | this.co ... E_URL') | TEST1_NOTIF__SERVICE_URL | test.ts:37:39:37:41 | url | /notifications/event-update |
+| test.ts:22:22:22:79 | this.co ... E_URL') | TEST1_NOTIF__SERVICE_URL | test.ts:37:39:37:41 | url | {TEST1_NOTIF__SERVICE_URL}/notifications/event-update |
+| test.ts:22:84:22:85 | '' | Unknown-Key | test.ts:37:39:37:41 | url | /notifications/event-update |
+| test.ts:22:84:22:85 | '' | Unknown-Key | test.ts:37:39:37:41 | url | {TEST1_NOTIF__SERVICE_URL}/notifications/event-update |
+| test.ts:24:21:24:76 | this.co ... E_URL') | TEST1CLUBS_SERVICE_URL | test.ts:46:36:46:74 | `${this ... roles/` | /clubs/roles/ |
+| test.ts:24:21:24:76 | this.co ... E_URL') | TEST1CLUBS_SERVICE_URL | test.ts:46:36:46:74 | `${this ... roles/` | {TEST1CLUBS_SERVICE_URL}/clubs/roles/ |
+| test.ts:24:81:24:82 | '' | Unknown-Key | test.ts:46:36:46:74 | `${this ... roles/` | /clubs/roles/ |
+| test.ts:24:81:24:82 | '' | Unknown-Key | test.ts:46:36:46:74 | `${this ... roles/` | {TEST1CLUBS_SERVICE_URL}/clubs/roles/ |
+| test.ts:58:17:58:39 | "TEST2P ... CE_URL" | Unknown-Key | test.ts:62:11:62:31 | `${bran ... health` | TEST2DEV_SERVICE_URL/health |
+| test.ts:58:17:58:39 | "TEST2P ... CE_URL" | Unknown-Key | test.ts:62:11:62:31 | `${bran ... health` | TEST2PROD_SERVICE_URL/health |
+| test.ts:60:17:60:38 | "TEST2D ... CE_URL" | Unknown-Key | test.ts:62:11:62:31 | `${bran ... health` | TEST2DEV_SERVICE_URL/health |
+| test.ts:60:17:60:38 | "TEST2D ... CE_URL" | Unknown-Key | test.ts:62:11:62:31 | `${bran ... health` | TEST2PROD_SERVICE_URL/health |
+| test.ts:67:10:67:21 | 'TEST2A_URL' | Unknown-Key | test.ts:71:11:71:35 | `${bran ... test2a` | TEST2A_URL/health/test2a |
+| test.ts:80:17:80:28 | "test4/path" | Unknown-Key | test.ts:84:11:84:19 | loopedUrl | test4/path |
+| test.ts:82:18:82:24 | "/base" | Unknown-Key | test.ts:84:11:84:19 | loopedUrl | test4/path |
+| test.ts:94:22:94:72 | this.co ... E_URL') | TEST5_SERVICE_URL | test.ts:107:22:107:24 | url | /notify/{userId} |
+| test.ts:94:22:94:72 | this.co ... E_URL') | TEST5_SERVICE_URL | test.ts:107:22:107:24 | url | {TEST5_SERVICE_URL}/notify/{userId} |
+| test.ts:94:77:94:78 | '' | Unknown-Key | test.ts:107:22:107:24 | url | /notify/{userId} |
+| test.ts:94:77:94:78 | '' | Unknown-Key | test.ts:107:22:107:24 | url | {TEST5_SERVICE_URL}/notify/{userId} |
+| test.ts:95:20:95:70 | this.co ... E_URL') | TEST5_SERVICE_URL | test.ts:112:38:112:45 | endpoint | /users/{userId} |
+| test.ts:95:20:95:70 | this.co ... E_URL') | TEST5_SERVICE_URL | test.ts:112:38:112:45 | endpoint | {TEST5_SERVICE_URL}/users/{userId} |
+| test.ts:95:75:95:76 | '' | Unknown-Key | test.ts:112:38:112:45 | endpoint | /users/{userId} |
+| test.ts:95:75:95:76 | '' | Unknown-Key | test.ts:112:38:112:45 | endpoint | {TEST5_SERVICE_URL}/users/{userId} |
+| test.ts:118:24:118:54 | "https: ... /test6" | Unknown-Key | test.ts:119:11:119:24 | SIMPLE_API_URL | https://api.example.com/test6 |
+| test.ts:125:38:125:44 | "users" | Unknown-Key | test.ts:126:12:126:22 | apiEndpoint | https://test7/{resource} |
+| test.ts:129:21:129:43 | "https: ... /test8" | Unknown-Key | test.ts:132:11:132:18 | finalUrl | https://backend/test8/api |
+| test.ts:131:30:131:35 | "/api" | Unknown-Key | test.ts:132:11:132:18 | finalUrl | https://backend/test8/api |
+| test.ts:142:35:142:99 | this.co ... E_URL') | TEST9_NOTIFICATIONS_SERVICE_URL | test.ts:149:39:149:41 | url | /notifications |
+| test.ts:142:35:142:99 | this.co ... E_URL') | TEST9_NOTIFICATIONS_SERVICE_URL | test.ts:149:39:149:41 | url | {TEST9_NOTIFICATIONS_SERVICE_URL}/notifications |
+| test.ts:142:104:142:105 | '' | Unknown-Key | test.ts:149:39:149:41 | url | /notifications |
+| test.ts:142:104:142:105 | '' | Unknown-Key | test.ts:149:39:149:41 | url | {TEST9_NOTIFICATIONS_SERVICE_URL}/notifications |
+| test.ts:144:27:144:83 | this.co ... E_URL') | TEST9_CLUBS_SERVICE_URL | test.ts:158:36:158:65 | `${this ... /clubs` | /clubs |
+| test.ts:144:27:144:83 | this.co ... E_URL') | TEST9_CLUBS_SERVICE_URL | test.ts:158:36:158:65 | `${this ... /clubs` | {TEST9_CLUBS_SERVICE_URL}/clubs |
+| test.ts:144:88:144:89 | '' | Unknown-Key | test.ts:158:36:158:65 | `${this ... /clubs` | /clubs |
+| test.ts:144:88:144:89 | '' | Unknown-Key | test.ts:158:36:158:65 | `${this ... /clubs` | {TEST9_CLUBS_SERVICE_URL}/clubs |
+| test.ts:175:36:175:101 | this.co ... E_URL') | TEST10_NOTIFICATIONS_SERVICE_URL | test.ts:182:39:182:41 | url | /notifications |
+| test.ts:175:36:175:101 | this.co ... E_URL') | TEST10_NOTIFICATIONS_SERVICE_URL | test.ts:182:39:182:41 | url | {TEST10_NOTIFICATIONS_SERVICE_URL}/notifications |
+| test.ts:175:106:175:107 | '' | Unknown-Key | test.ts:182:39:182:41 | url | /notifications |
+| test.ts:175:106:175:107 | '' | Unknown-Key | test.ts:182:39:182:41 | url | {TEST10_NOTIFICATIONS_SERVICE_URL}/notifications |
+| test.ts:189:20:189:58 | configS ... E_URL') | TEST11_SERVICE_URL | test.ts:191:19:191:21 | url | {url} |
+| test.ts:197:19:197:53 | configS ... I_URL') | TEST12_API_URL | test.ts:199:21:199:23 | url | http://default.com |
+| test.ts:197:19:197:53 | configS ... I_URL') | TEST12_API_URL | test.ts:199:21:199:23 | url | {TEST12_API_URL} |
+| test.ts:198:26:198:45 | "http://default.com" | Unknown-Key | test.ts:199:21:199:23 | url | http://default.com |
+| test.ts:198:26:198:45 | "http://default.com" | Unknown-Key | test.ts:199:21:199:23 | url | {TEST12_API_URL} |
+| test.ts:207:19:207:49 | config. ... M_URL') | TEST13_RANDOM_URL | test.ts:218:21:218:31 | this.apiUrl |  |
+| test.ts:207:19:207:49 | config. ... M_URL') | TEST13_RANDOM_URL | test.ts:218:21:218:31 | this.apiUrl | {TEST13_RANDOM_URL} |
+| test.ts:207:54:207:55 | '' | Unknown-Key | test.ts:218:21:218:31 | this.apiUrl |  |
+| test.ts:207:54:207:55 | '' | Unknown-Key | test.ts:218:21:218:31 | this.apiUrl | {TEST13_RANDOM_URL} |
+| test.ts:229:22:229:87 | this.co ... E_URL') | TEST14_NOTIFICATIONS_SERVICE_URL | test.ts:242:22:242:24 | url | /notify/{userId} |
+| test.ts:229:22:229:87 | this.co ... E_URL') | TEST14_NOTIFICATIONS_SERVICE_URL | test.ts:242:22:242:24 | url | {TEST14_NOTIFICATIONS_SERVICE_URL}/notify/{userId} |
+| test.ts:229:92:229:93 | '' | Unknown-Key | test.ts:242:22:242:24 | url | /notify/{userId} |
+| test.ts:229:92:229:93 | '' | Unknown-Key | test.ts:242:22:242:24 | url | {TEST14_NOTIFICATIONS_SERVICE_URL}/notify/{userId} |
+| test.ts:230:20:230:75 | this.co ... E_URL') | TEST14_API_SERVICE_URL | test.ts:247:38:247:45 | endpoint | /users/{userId} |
+| test.ts:230:20:230:75 | this.co ... E_URL') | TEST14_API_SERVICE_URL | test.ts:247:38:247:45 | endpoint | {TEST14_API_SERVICE_URL}/users/{userId} |
+| test.ts:230:80:230:81 | '' | Unknown-Key | test.ts:247:38:247:45 | endpoint | /users/{userId} |
+| test.ts:230:80:230:81 | '' | Unknown-Key | test.ts:247:38:247:45 | endpoint | {TEST14_API_SERVICE_URL}/users/{userId} |
