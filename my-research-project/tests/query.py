@@ -23,20 +23,25 @@ def load_all_envs(env_paths):
                     
     return combined_vars
 
-def process_codeql_csv(csv_path, env_vars):
+def process_codeql_csv(csv_path, env_vars, output_path):
     if not os.path.exists(csv_path):
         print(f"Error: CSV file {csv_path} not found.")
         return
 
-    with open(csv_path, mode='r', encoding='utf-8') as f:
+    with open(csv_path, mode='r', encoding='utf-8') as f, \
+         open(output_path, mode='w', encoding='utf-8') as out:
         reader = csv.reader(f)
         header = next(reader)  # Skip header
         
         print(f"DEBUG: Header columns: {header}")
         print(f"DEBUG: Loaded env vars: {list(env_vars.keys())}")
 
-        print(f"\n{'Location':<30} | {'Extracted Env Vars':<35} | {'Resolved URL'}")
-        print("-" * 100)
+        header_line = f"{'Location':<30} | {'Extracted Env Vars':<35} | {'Resolved URL'}"
+        separator_line = "-" * 100
+        print("\n" + header_line)
+        print(separator_line)
+        out.write(header_line + "\n")
+        out.write(separator_line + "\n")
         
         seen_urls = set()  # Track already printed URLs
         
@@ -77,7 +82,9 @@ def process_codeql_csv(csv_path, env_vars):
                 # Skip duplicates
                 if resolved_url not in seen_urls:
                     seen_urls.add(resolved_url)
-                    print(f"{call_info[:28]:<30} | {', '.join(env_matches):<35} | {resolved_url}")
+                    line = f"{call_info[:28]:<30} | {', '.join(env_matches):<35} | {resolved_url}"
+                    print(line)
+                    out.write(line + "\n")
 
 if __name__ == "__main__":
     # List all the different locations where your .env files are stored
@@ -90,7 +97,9 @@ if __name__ == "__main__":
     
     # Load all of them into one master dictionary
     master_env = load_all_envs(env_locations)
-    
+
+    # Where to write the final results
+    output_path = os.path.join(os.path.dirname(__file__), 'final_result.txt')
     
     # Run the processor
-    process_codeql_csv(r'C:\Users\mary\Clubs\Research\simple-app\my-research-project\codeql_results.csv', master_env)
+    process_codeql_csv(r'C:\Users\mary\Clubs\Research\simple-app\my-research-project\codeql_results.csv', master_env, output_path)
