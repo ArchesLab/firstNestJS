@@ -61,29 +61,37 @@ if (process.env.NODE_ENV === 'prod') {
 }
 axios.get(`${branchUrl}/health`);
 
-// --- 2.a. One Higher Level Function - PASS ---
+// --- 3. One Higher Level Function - PASS ---
 let branch;
 function setBranchUrl() {
-  return 'TEST2A_URL';
+  return 'TEST3_URL';
 
 }
 branch = setBranchUrl();  
-axios.get(`${branch}/health/test2a`);
+axios.get(`${branch}/health/test3`);
 
-// --- 3. Integer Handling & Arithmetic (FAIL) ---
+// --- 4. Integer Handling & Arithmetic (PASS) ---
+const BASE_HOST = "http://localhost";
 const BASE_PORT = 8000;
 const port = BASE_PORT + 10;
-const url = `http://localhost:${port}/TEST3/status`;
+const url = `${BASE_HOST}:${port}/TEST4/status`;
 axios.get(url);
 
-// --- 4. Termination & Loops (FAIL) ---
-let loopedUrl = "test4/path";
+// --- 5. String Concatenation (PASS) ---
+const BASE_HOST2 = "http://localhost";
+const BASE_PORT2 = 8000;
+const port2 = BASE_PORT2 + 'hi';
+const url2 = `${BASE_HOST2}:${port2}/TEST5/status`;
+axios.get(url2);
+
+// --- 6. Termination & Loops (FAIL) ---
+let loopedUrl = "test6/path";
 for (let i = 0; i < 3; i++) {
     loopedUrl += "/base"; 
 }
 axios.get(loopedUrl);
 
-// --- 5. URL has parameter - PASS ---
+// --- 7. URL has parameter - PASS ---
 // Testing if dataflow3.ql works with public readonly instead of private
 @Injectable()
 export class PublicPropertyService {
@@ -91,8 +99,8 @@ export class PublicPropertyService {
   private readonly apiBaseURL: string;
 
   constructor(private readonly configService: ConfigService) {
-    const notifURL = this.configService.get<string>('TEST5_SERVICE_URL') || ''; 
-    const apiURL = this.configService.get<string>('TEST5_SERVICE_URL') || '';
+    const notifURL = this.configService.get<string>('TEST7_SERVICE_URL') || ''; 
+    const apiURL = this.configService.get<string>('TEST7_SERVICE_URL') || '';
     
     this.notificationsBaseURL = notifURL;
     this.apiBaseURL = apiURL;
@@ -114,24 +122,24 @@ export class PublicPropertyService {
   }
 }
 
-// --- 6. Simple Constant URL Test PASS ---
-const SIMPLE_API_URL = "https://api.example.com/test6";
+// --- 8. Simple Constant URL Test PASS ---
+const SIMPLE_API_URL = "https://api.example.com/test8";
 axios.get(SIMPLE_API_URL);
 
-// --- 7. Function Return Value Test PASS ---
+// --- 9. Function Return Value Test PASS ---
 function buildApiEndpoint(resource: string): string {
-  return `https://test7/${resource}`;
+  return `https://test9/${resource}`;
 }
 const apiEndpoint = buildApiEndpoint("users");
 axios.post(apiEndpoint);
 
-// --- 8. Variable Reassignment Test - PASS---
-const originalUrl = "https://backend/test8";
+// --- 10. Variable Reassignment Test - PASS---
+const originalUrl = "https://backend/test10";
 let mirrorUrl = originalUrl;
 const finalUrl = mirrorUrl + "/api";
 axios.get(finalUrl);
 
-// --- 9. Mutable Assignemntns via no readonly - PASS---
+// --- 11. Mutable Assignemntns via no readonly - PASS---
 @Injectable()
 export class AppService2 {
   private test9NotificationsBase: string;
@@ -139,9 +147,9 @@ export class AppService2 {
   private test9ClubsBase: string;
 
   constructor(private readonly configService: ConfigService) {
-    this.test9NotificationsBase = this.configService.get<string>('TEST9_NOTIFICATIONS_SERVICE_URL') || '';
-    this.test9UsersBase = this.configService.get<string>('TEST9_USERS_SERVICE_URL') || '';
-    this.test9ClubsBase = this.configService.get<string>('TEST9_CLUBS_SERVICE_URL') || '';
+    this.test9NotificationsBase = this.configService.get<string>('TEST11_NOTIFICATIONS_SERVICE_URL') || '';
+    this.test9UsersBase = this.configService.get<string>('TEST11_USERS_SERVICE_URL') || '';
+    this.test9ClubsBase = this.configService.get<string>('TEST11_CLUBS_SERVICE_URL') || '';
   }
 
   async callEventDetailsNotif(eventId: string): Promise<{ message: string }> {
@@ -164,7 +172,7 @@ export class AppService2 {
   }
 }
 
-// --- 10. Changing private to public - PASS---
+// --- 12. Changing private to public - PASS---
 @Injectable()
 export class AppService3 {
   public readonly test10NotificationsBase: string;
@@ -172,9 +180,9 @@ export class AppService3 {
   public readonly test10ClubsBase: string;
 
   constructor(private readonly configService: ConfigService) {
-    this.test10NotificationsBase = this.configService.get<string>('TEST10_NOTIFICATIONS_SERVICE_URL') || '';
-    this.test10UsersBase = this.configService.get<string>('TEST10_USERS_SERVICE_URL') || '';
-    this.test10ClubsBase = this.configService.get<string>('TEST10_CLUBS_SERVICE_URL') || '';
+    this.test10NotificationsBase = this.configService.get<string>('TEST12_NOTIFICATIONS_SERVICE_URL') || '';
+    this.test10UsersBase = this.configService.get<string>('TEST12_USERS_SERVICE_URL') || '';
+    this.test10ClubsBase = this.configService.get<string>('TEST12_CLUBS_SERVICE_URL') || '';
   }
 
   async callEventDetailsNotif(eventId: string): Promise<{ message: string }> {
@@ -184,27 +192,27 @@ export class AppService3 {
   }
 }
 
-// --- 11. Including Promise - FAIL---
+// --- 13. Including Promise - FAIL---
 async function callbackFlow(configService: ConfigService) {
-    const rawUrl = configService.get('TEST11_SERVICE_URL');
+    const rawUrl = configService.get('TEST13_SERVICE_URL');
     Promise.resolve(rawUrl).then(url => {
         axios.get(url);
     });
 }
 
-// --- 12. Outputs both possibilities, default and API_URL) - PASS---
+// --- 14. Outputs both possibilities, default and API_URL) - PASS---
 async function shortCircuitTest(configService: ConfigService) {
-    const input = configService.get('TEST12_API_URL');
+    const input = configService.get('TEST14_API_URL');
     const url = input || "http://default.com";
     await axios.get(url);
 }
 
-// --- 13. Inheritance - PASS---
+// --- 15. Inheritance - PASS---
 class BaseService {
   public readonly apiUrl: string;
 
   constructor(config: ConfigService) {
-    this.apiUrl = config.get('TEST13_RANDOM_URL') || '';
+    this.apiUrl = config.get('TEST15_RANDOM_URL') || '';
   }
 }
 
@@ -219,15 +227,15 @@ export class SubService extends BaseService {
   }
 }
 
-// --- 14. URL has parameter --- PASS ---
+// --- 16. URL has parameter --- PASS ---
 @Injectable()
 export class PublicPropertyService2 {
   private readonly test15BaseURL: string;
   private readonly test15APIaseURL: string;
 
   constructor(private readonly configService: ConfigService) {
-    const notifURL = this.configService.get<string>('TEST14_NOTIFICATIONS_SERVICE_URL') || ''; 
-    const apiURL = this.configService.get<string>('TEST14_API_SERVICE_URL') || '';
+    const notifURL = this.configService.get<string>('TEST16_NOTIFICATIONS_SERVICE_URL') || ''; 
+    const apiURL = this.configService.get<string>('TEST16_API_SERVICE_URL') || '';
     
     this.test15BaseURL = notifURL;
     this.test15APIaseURL = apiURL;
@@ -248,10 +256,10 @@ export class PublicPropertyService2 {
     return response.data;
   }
 }
-// --- 15. Recursion/Function Calls - FAIL due to session timeout ---
+// --- 17. Recursion/Function Calls - FAIL due to session timeout ---
 // function getPath(depth: number): string {
 //     if (depth <= 0) {
-//         return "TEST15_BASE_URL";
+//         return "TEST17_BASE_URL";
 //     }
 //     return getPath(depth - 1) + "/sub";
 // }
