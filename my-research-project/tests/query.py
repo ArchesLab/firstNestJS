@@ -2,6 +2,7 @@ import csv
 import os
 import re
 
+
 def load_all_envs(env_paths):
     """Takes a list of paths and merges them into one dictionary."""
     combined_vars = {}
@@ -23,6 +24,26 @@ def load_all_envs(env_paths):
                     
     return combined_vars
 
+
+def infer_callee_service(env_matches):
+    """Infer callee service name(s) from env var names like USERS_SERVICE_URL.
+
+    Returns a lowercase service name (e.g. "users") or a comma-separated list
+    if multiple distinct services are present, or "unknown" if none match
+    the *_SERVICE_URL pattern.
+    """
+    services = set()
+    for env_var in env_matches:
+        m = re.match(r"([A-Z][A-Z0-9]*)_SERVICE_URL$", env_var)
+        if m:
+            services.add(m.group(1).lower())
+    if not services:
+        return "unknown"
+    if len(services) == 1:
+        return next(iter(services))
+    return ",".join(sorted(services))
+
+
 def process_codeql_csv(csv_path, env_vars, output_path):
     if not os.path.exists(csv_path):
         print(f"Error: CSV file {csv_path} not found.")
@@ -32,18 +53,25 @@ def process_codeql_csv(csv_path, env_vars, output_path):
          open(output_path, mode='w', encoding='utf-8') as out:
         reader = csv.reader(f)
         header = next(reader)  # Skip header
-        
+
         print(f"DEBUG: Header columns: {header}")
         print(f"DEBUG: Loaded env vars: {list(env_vars.keys())}")
 
-        header_line = f"{'Location':<30} | {'Extracted Env Vars':<35} | {'Resolved URL'}"
+        # Try to locate callerService column (added by dataflow6.ql)
+        try:
+            caller_idx = header.index("callerService")
+        except ValueError:
+            caller_idx = None
+
+        header_line = f"{'Location':<30} | {'Caller Service':<15} | {'Extracted Env Vars':<35} | {'Resolved URL'}"
         separator_line = "-" * 100
         print("\n" + header_line)
         print(separator_line)
         out.write(header_line + "\n")
         out.write(separator_line + "\n")
         
-        seen_urls = set()  # Track already printed URLs
+        # De-duplicate by (callerService, Extracted Env Vars)
+        seen_pairs = set()
         
         for row in reader:
             if len(row) < 4: 
@@ -51,7 +79,7 @@ def process_codeql_csv(csv_path, env_vars, output_path):
             
             call_info = row[0]
             
-            # The URL pattern is in the last column (col3)
+            # The URL pattern is in the last column (resolvedEndpoint)
             raw_url = row[-1]
             
             if not raw_url:
@@ -78,11 +106,23 @@ def process_codeql_csv(csv_path, env_vars, output_path):
                 resolved_url = resolved_url.replace(f"{{{env_var}}}", f"{{{env_value}}}")
             
             if all_found:
-                # Print only if all environment variables were found and resolved
-                # Skip duplicates
-                if resolved_url not in seen_urls:
-                    seen_urls.add(resolved_url)
-                    line = f"{call_info[:28]:<30} | {', '.join(env_matches):<35} | {resolved_url}"
+                # De-duplicate rows with same (callerService, Extracted Env Vars)
+                if caller_idx is not None and caller_idx < len(row):
+                    caller_service = row[caller_idx]
+                else:
+                    caller_service = "unknown"
+
+                env_key = tuple(env_matches)
+                key = (caller_service, env_key)
+
+                if key not in seen_pairs:
+                    seen_pairs.add(key)
+                    line = (
+                        f"{call_info[:28]:<30} | "
+                        f"{caller_service:<15} | "
+                        f"{', '.join(env_matches):<35} | "
+                        f"{resolved_url}"
+                    )
                     print(line)
                     out.write(line + "\n")
 
