@@ -55,6 +55,36 @@ module ConfigToAxiosConfig implements DataFlow::ConfigSig {
 module ConfigToAxios = TaintTracking::Global<ConfigToAxiosConfig>;
 
 /**
+ * Computes an integer value for simple numeric expressions.
+ * Supports number literals, additions of numeric expressions, and variables
+ * that locally flow from such expressions.
+ */
+int valueOf(Expr e) {
+  // Number literal
+  exists(NumberLiteral nl |
+    nl = e and
+    result = nl.getValue().toInt()
+  )
+  or
+  // Addition of numeric expressions
+  exists(AddExpr add, int lv, int rv |
+    add = e and
+    lv = valueOf(add.getLeftOperand()) and
+    rv = valueOf(add.getRightOperand()) and
+    result = lv + rv
+  )
+  or
+  // Variable whose definition is a numeric expression
+  exists(VarAccess va, Expr source, int v |
+    va = e and
+    DataFlow::localFlowStep*(DataFlow::valueNode(source), DataFlow::valueNode(va)) and
+    not source instanceof VarAccess and
+    v = valueOf(source) and
+    result = v
+  )
+}
+
+/**
  * Recursively resolves an expression to its logical string representation.
  */
 string resolveExprValue(Expr e) {
@@ -67,19 +97,41 @@ string resolveExprValue(Expr e) {
     result = "{" + mc.getAnArgument().(StringLiteral).getValue() + "}"
   )
   or
-  // 3. String Concatenation (AddExpr)
-  exists(AddExpr add | 
+  // 3. Numeric literals
+  exists(NumberLiteral nl |
+    nl = e and
+    result = nl.getValue()
+  )
+  or
+  // 4. Pure numeric addition (AddExpr)
+  exists(AddExpr add, int v |
     add = e and
+    // No string or template literals directly in this addition:
+    not exists(Expr operand |
+      operand = add.getAnOperand() and
+      (operand instanceof StringLiteral or operand instanceof TemplateLiteral)
+    ) and
+    v = valueOf(add) and
+    result = "" + v
+  )
+  or
+  // 5. String concatenation (AddExpr with a string/template literal)
+  exists(AddExpr add |
+    add = e and
+    exists(Expr operand |
+      operand = add.getAnOperand() and
+      (operand instanceof StringLiteral or operand instanceof TemplateLiteral)
+    ) and
     result = resolveExprValue(add.getLeftOperand()) + resolveExprValue(add.getRightOperand())
   )
   or
-  // 4. Template Literals
+  // 6. Template Literals
   exists(TemplateLiteral tl | 
     tl = e and
     result = resolveTemplateElements(tl, 0)
   )
   or
-  // 5. Inter-procedural Return Resolution
+  // 7. Inter-procedural Return Resolution
   exists(CallExpr call, Function f |
     call = e and
     // In JS library, we resolve the callee to a function definition
@@ -88,25 +140,25 @@ string resolveExprValue(Expr e) {
     result = resolveExprValue(f.getAReturnStmt().getExpr())
   )
   or
-  // 5b. For named function declarations
+  // 7b. For named function declarations
   exists(CallExpr call, FunctionDeclStmt f |
     call = e and
     f.getName() = call.getCalleeName() and
     result = resolveExprValue(f.getAReturnStmt().getExpr())
   )
   or
-  // 6. Logical Expressions (The || fix)
+  // 8. Logical Expressions (The || fix)
   exists(LogicalBinaryExpr log | log = e |
     result = resolveExprValue(log.getLeftOperand()) or 
     result = resolveExprValue(log.getRightOperand())
   )
   or
-  // 7. Await Expressions
+  // 9. Await Expressions
   exists(AwaitExpr await | await = e |
     result = resolveExprValue(await.getOperand())
   )
   or
-  // 8. SSA/Variable Resolution
+  // 10. SSA/Variable Resolution
   exists(VarAccess va, Expr source |
     va = e and
     DataFlow::localFlowStep*(DataFlow::valueNode(source), DataFlow::valueNode(va)) and
@@ -114,7 +166,7 @@ string resolveExprValue(Expr e) {
     result = resolveExprValue(source)
   )
   or
-  // 9. Property Access (this.tempBaseUrl)
+  // 11. Property Access (this.tempBaseUrl)
   exists(PropAccess pa, AssignExpr assign |
     pa = e and pa.getBase() instanceof ThisExpr and
     assign.getLhs().(PropAccess).getPropertyName() = pa.getPropertyName() and
