@@ -1,0 +1,11 @@
+Location                       | Caller Service  | Extracted Env Vars                  | Resolved URL
+----------------------------------------------------------------------------------------------------
+this.co ... E_URL')            | auth            | USERS_SERVICE_URL                   | {http://localhost:3005}/users
+this.co ... E_URL')            | gateway         | USERS_SERVICE_URL                   | {http://localhost:3005}/users
+this.co ... E_URL')            | auth            | CLUBS_SERVICE_URL                   | {http://localhost:3001}/clubs/roles/{clubId}/{userId}
+this.co ... E_URL')            | gateway         | CLUBS_SERVICE_URL                   | {http://localhost:3001}/clubs
+this.co ... E_URL')            | clubs           | EVENTS_SERVICE_URL                  | {http://localhost:3002}/events
+this.co ... \r\n    )          | events          | NOTIFICATIONS_SERVICE_URL           | {http://localhost:3004}/notifications/event-update
+this.co ... E_URL')            | events          | CLUBS_SERVICE_URL                   | {http://localhost:3001}/clubs/event-reference/{eventId}
+'event-update'                 | notifications   | EVENTS_SERVICE_URL                  | {http://localhost:3002}/events/template-data/{templateId}
+this.co ... E_URL')            | notifications   | USERS_SERVICE_URL                   | {http://localhost:3005}/users/unsubscribe/{userId}

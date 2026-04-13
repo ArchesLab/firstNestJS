@@ -1,0 +1,59 @@
+@startuml
+!theme plain
+left to right direction
+skinparam componentStyle uml2
+skinparam nodesep 20
+skinparam ranksep 150
+
+' Force all components to stay on the same horizontal rank
+together {
+  component [gateway] as gateway
+  component [auth] as auth
+  component [users] as users
+  component [clubs] as clubs
+  component [events] as events
+  component [notifications] as notifications
+}
+
+' Maintain the horizontal sequence
+gateway -[hidden]r- auth
+auth -[hidden]r- users
+users -[hidden]r- clubs
+clubs -[hidden]r- events
+events -[hidden]r- notifications
+
+' --- Port Definitions ---
+
+component users {
+    portin "/users" as u_p1
+    portin "/users" as u_p2
+    portin "/users/unsubscribe/{userId}" as u_p3
+}
+
+component clubs {
+    portin "/clubs" as c_p1
+    portin "/clubs/event-reference/{eventId}" as c_p2
+    portin "/clubs/roles/{clubId}/{userId}" as c_p3
+}
+
+component events {
+    portin "/events" as e_p1
+    portin "/events/template-data/{templateId}" as e_p2
+}
+
+component notifications {
+    portin "/notifications/event-update" as n_p1
+}
+
+' --- Connections ---
+
+clubs --> e_p1 : GET
+auth --> u_p2 : GET
+gateway --> c_p1 : POST
+events --> c_p2 : GET
+auth --> c_p3 : GET
+gateway --> u_p2 : POST
+notifications --> e_p2 : GET
+events --> n_p1 : POST
+notifications --> u_p3 : POST
+@enduml

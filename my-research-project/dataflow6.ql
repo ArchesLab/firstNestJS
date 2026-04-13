@@ -215,15 +215,81 @@ string resolveUrlAtSink(DataFlow::Node sink) {
   )
 }
 
+/**
+ * Derive the calling microservice name from the sink's file path.
+ * Uses the relative file path and maps top-level folders like
+ * `auth/`, `clubs/`, `events/`, `gateway/`, `notifications`, `users/`.
+ */
+string callerService(DataFlow::Node sink) {
+  // auth
+  result = "auth" and
+  exists(Expr e, string p |
+    e = sink.asExpr() and
+    p = e.getFile().getRelativePath() and
+    (p.matches("auth/%") or p.matches("%/auth/%"))
+  )
+  or
+  // clubs
+  result = "clubs" and
+  exists(Expr e, string p |
+    e = sink.asExpr() and
+    p = e.getFile().getRelativePath() and
+    (p.matches("clubs/%") or p.matches("%/clubs/%"))
+  )
+  or
+  // events
+  result = "events" and
+  exists(Expr e, string p |
+    e = sink.asExpr() and
+    p = e.getFile().getRelativePath() and
+    (p.matches("events/%") or p.matches("%/events/%"))
+  )
+  or
+  // gateway
+  result = "gateway" and
+  exists(Expr e, string p |
+    e = sink.asExpr() and
+    p = e.getFile().getRelativePath() and
+    (p.matches("gateway/%") or p.matches("%/gateway/%"))
+  )
+  or
+  // notifications
+  result = "notifications" and
+  exists(Expr e, string p |
+    e = sink.asExpr() and
+    p = e.getFile().getRelativePath() and
+    (p.matches("notifications/%") or p.matches("%/notifications/%"))
+  )
+  or
+  // users
+  result = "users" and
+  exists(Expr e, string p |
+    e = sink.asExpr() and
+    p = e.getFile().getRelativePath() and
+    (p.matches("users/%") or p.matches("%/users/%"))
+  )
+  or
+  // fallback when no folder matched
+  result = "unknown-service" and
+  not exists(Expr e, string p |
+    e = sink.asExpr() and
+    p = e.getFile().getRelativePath() and
+    (
+      p.matches("auth/%") or p.matches("%/auth/%") or
+      p.matches("clubs/%") or p.matches("%/clubs/%") or
+      p.matches("events/%") or p.matches("%/events/%") or
+      p.matches("gateway/%") or p.matches("%/gateway/%") or
+      p.matches("notifications/%") or p.matches("%/notifications/%") or
+      p.matches("users/%") or p.matches("%/users/%")
+    )
+  )
+}
+
 from DataFlow::Node source, DataFlow::Node sink
 where ConfigToAxios::flow(source, sink)
-// select 
-//   source, 
-//   source.asExpr().(MethodCallExpr).getAnArgument().(StringLiteral).getValue() as configKey,
-//   sink, 
-//   resolveUrlAtSink(sink) as resolvedEndpoint
 select 
-  source, 
+  source,
+  callerService(sink) as callerService,
   any(string s | 
     if source.asExpr() instanceof MethodCallExpr 
     then s = source.asExpr().(MethodCallExpr).getAnArgument().(StringLiteral).getValue()
