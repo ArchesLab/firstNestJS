@@ -1,0 +1,3 @@
+[submodule "ArchUML"]
+	path = ArchUML
+	url = https://github.com/ArchesLab/ArchUML
