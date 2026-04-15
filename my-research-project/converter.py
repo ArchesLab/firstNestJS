@@ -9,11 +9,14 @@ input_file_path = os.path.join(script_dir, 'tests', 'final_result.txt')
 def parse_line(line):
     """Parses a line from the input file and extracts relevant information."""
     parts = [p.strip() for p in line.split('|')]
-    if len(parts) < 4:
+    if len(parts) < 5:
         return None
     
     caller_service = parts[1]
-    url_match = re.search(r'\{(.*?)\}(.*)', parts[3])
+    resolved_url = parts[3]
+    http_method = parts[4]
+
+    url_match = re.search(r'\{(.*?)\}(.*)', resolved_url)
     if not url_match:
         return None
         
@@ -22,18 +25,6 @@ def parse_line(line):
     # Determine target service from the start of the path
     path_parts = path.strip('/').split('/')
     target_service = path_parts[0] if path_parts else ''
-
-    # Heuristic to determine HTTP method, defaulting to GET
-    http_method = 'GET'
-    if 'update' in path or 'unsubscribe' in path:
-        http_method = 'POST'
-    elif caller_service == 'gateway' and 'clubs' in path:
-        http_method = 'POST'
-    elif caller_service == 'gateway' and 'users' in path:
-        http_method = 'POST'
-    elif caller_service == 'events' and 'notifications' in path:
-        http_method = 'POST'
-
 
     return {
         'caller': caller_service,
@@ -74,24 +65,22 @@ def generate_plantuml(data):
     # Port definitions
     plantuml_string += "' --- Port Definitions ---\n\n"
     ports = {}
-    port_counter = 1
     for comp in components:
-        comp_ports = [d for d in data if d['target'] == comp]
-        if comp_ports:
+        # Check if any data targets this component
+        if any(d['target'] == comp for d in data):
+            port_alias = f"{comp}_port"
+            ports[comp] = port_alias
             plantuml_string += f"component {comp} {{\n"
-            for i, port_data in enumerate(comp_ports):
-                port_alias = f"{comp[0]}_p{i+1}"
-                ports[(comp, port_data['path'])] = port_alias
-                plantuml_string += f"    portin \"{port_data['path']}\" as {port_alias}\n"
+            plantuml_string += f"    portin \"/{comp}\" as {port_alias}\n"
             plantuml_string += "}\n\n"
 
     # Connections
     plantuml_string += "' --- Connections ---\n\n"
     for d in data:
         if d['target'] in components:
-            target_port_alias = ports.get((d['target'], d['path']))
+            target_port_alias = ports.get(d['target'])
             if target_port_alias:
-                plantuml_string += f"{d['caller']} --> {target_port_alias} : {d['method']}\n"
+                plantuml_string += f"{d['caller']} --> {target_port_alias} : \"{d['method']} {d['path']}\"\n"
 
     plantuml_string += "@enduml\n"
     

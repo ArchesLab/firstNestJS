@@ -25,35 +25,30 @@ events -[hidden]r- notifications
 ' --- Port Definitions ---
 
 component users {
-    portin "/users" as u_p1
-    portin "/users" as u_p2
-    portin "/users/unsubscribe/{userId}" as u_p3
+    portin "/users" as users_port
 }
 
 component clubs {
-    portin "/clubs" as c_p1
-    portin "/clubs/event-reference/{eventId}" as c_p2
-    portin "/clubs/roles/{clubId}/{userId}" as c_p3
+    portin "/clubs" as clubs_port
 }
 
 component events {
-    portin "/events" as e_p1
-    portin "/events/template-data/{templateId}" as e_p2
+    portin "/events" as events_port
 }
 
 component notifications {
-    portin "/notifications/event-update" as n_p1
+    portin "/notifications" as notifications_port
 }
 
 ' --- Connections ---
 
-clubs --> e_p1 : GET
-auth --> u_p2 : GET
-gateway --> c_p1 : POST
-events --> c_p2 : GET
-auth --> c_p3 : GET
-gateway --> u_p2 : POST
-notifications --> e_p2 : GET
-events --> n_p1 : POST
-notifications --> u_p3 : POST
+notifications --> users_port : "patch /users/unsubscribe/{userId}"
+notifications --> events_port : "get /events/template-data/{templateId}"
+auth --> clubs_port : "get /clubs/roles/{clubId}/{userId}"
+auth --> users_port : "post /users"
+gateway --> users_port : "get /users"
+gateway --> clubs_port : "get /clubs"
+clubs --> events_port : "post /events"
+events --> notifications_port : "post /notifications/event-update"
+events --> clubs_port : "delete /clubs/event-reference/{eventId}"
 @enduml

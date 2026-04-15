@@ -60,27 +60,31 @@ def process_codeql_csv(csv_path, env_vars, output_path):
         # Try to locate callerService column (added by dataflow6.ql)
         try:
             caller_idx = header.index("callerService")
-        except ValueError:
-            caller_idx = None
+            http_method_idx = header.index("httpMethod")
+        except ValueError as e:
+            print(f"Error: Missing required column in CSV header - {e}")
+            return
 
-        header_line = f"{'Location':<30} | {'Caller Service':<15} | {'Extracted Env Vars':<35} | {'Resolved URL'}"
-        separator_line = "-" * 100
+        header_line = f"{'Location':<30} | {'Caller Service':<15} | {'Extracted Env Vars':<35} | {'Resolved URL':<40} | {'HTTP Method'}"
+        separator_line = "-" * 120
         print("\n" + header_line)
         print(separator_line)
         out.write(header_line + "\n")
         out.write(separator_line + "\n")
         
-        # De-duplicate by (callerService, Extracted Env Vars)
-        seen_pairs = set()
+        # De-duplicate by (callerService, Extracted Env Vars, httpMethod)
+        seen_tuples = set()
         
         for row in reader:
             if len(row) < 4: 
                 continue
             
             call_info = row[0]
+            caller_service = row[caller_idx]
+            http_method = row[http_method_idx]
             
-            # The URL pattern is in the last column (resolvedEndpoint)
-            raw_url = row[-1]
+            # The URL pattern is in the second to last column (resolvedEndpoint)
+            raw_url = row[-2]
             
             if not raw_url:
                 continue
@@ -106,22 +110,18 @@ def process_codeql_csv(csv_path, env_vars, output_path):
                 resolved_url = resolved_url.replace(f"{{{env_var}}}", f"{{{env_value}}}")
             
             if all_found:
-                # De-duplicate rows with same (callerService, Extracted Env Vars)
-                if caller_idx is not None and caller_idx < len(row):
-                    caller_service = row[caller_idx]
-                else:
-                    caller_service = "unknown"
-
+                # De-duplicate rows with same (callerService, Extracted Env Vars, httpMethod)
                 env_key = tuple(env_matches)
-                key = (caller_service, env_key)
+                key = (caller_service, env_key, http_method)
 
-                if key not in seen_pairs:
-                    seen_pairs.add(key)
+                if key not in seen_tuples:
+                    seen_tuples.add(key)
                     line = (
                         f"{call_info[:28]:<30} | "
                         f"{caller_service:<15} | "
                         f"{', '.join(env_matches):<35} | "
-                        f"{resolved_url}"
+                        f"{resolved_url:<40} | "
+                        f"{http_method}"
                     )
                     print(line)
                     out.write(line + "\n")
