@@ -285,6 +285,17 @@ string callerService(DataFlow::Node sink) {
   )
 }
 
+/**
+ * Extracts the HTTP method (e.g., "get", "post") from an Axios call expression.
+ */
+string httpMethod(DataFlow::Node sink) {
+  exists(MethodCallExpr axiosCall |
+    sink.asExpr() = axiosCall.getAnArgument() and
+    axiosCall.getReceiver().(Identifier).getName() = "axios" and
+    result = axiosCall.getMethodName()
+  )
+}
+
 from DataFlow::Node source, DataFlow::Node sink
 where ConfigToAxios::flow(source, sink)
 select 
@@ -296,4 +307,5 @@ select
     else s = "Unknown-Key"
   ) as configKey,
   sink, 
-  resolveUrlAtSink(sink) as resolvedEndpoint
+  resolveUrlAtSink(sink) as resolvedEndpoint,
+  httpMethod(sink) as httpMethod
