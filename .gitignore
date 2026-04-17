@@ -6,3 +6,7 @@ my-db/
 my-research-project/tests/test/test.testproj
 my-research-project/tests/function/function.testproj
 my-research-project/evaluator-logs
+
+# Python bytecode cache
+__pycache__/
+*.py[cod]
