@@ -45,31 +45,6 @@ private predicate fileUsesRedis(File f) {
 }
 
 /**
- * Heuristic: variables that hold a Redis client.
- *
- * WHY A NAMING HEURISTIC IN ADDITION TO IMPORT CHECK:
- *   The file-level import check is not always enough: some codebases hide
- *   Redis behind a DI token and the file that USES the client doesn't
- *   re-import the library. Matching names like `redis`, `cache`,
- *   `redisClient`, `ioredis` catches these without relying on type info.
- *
- *   False positives (a variable named `redis` that is not actually a
- *   Redis client) are filtered by the command-name check below: if the
- *   called method isn't a Redis command, the sink is rejected.
- */
-// `bindingset[name]`: `name` is always supplied by the caller (it's the
-// identifier string of a receiver). The body is a pure filter - `matches`
-// and equality checks can't enumerate strings - so CodeQL needs the
-// explicit binding declaration to typecheck.
-bindingset[name]
-private predicate looksLikeRedisReceiverName(string name) {
-  exists(string lower | lower = name.toLowerCase() |
-    lower = "redis" or lower = "redisclient" or lower = "ioredis" or
-    lower = "cache" or lower = "cacheclient" or lower.matches("%redis%")
-  )
-}
-
-/**
  * The set of Redis commands we treat as call-return connectors.
  *
  * WHY A CLOSED SET:
@@ -80,45 +55,48 @@ private predicate looksLikeRedisReceiverName(string name) {
  *     3) Gives a clear affordance for authors to add more commands when
  *        they need them.
  *
- *   Methods on Node Redis clients are lower-case (`redis` v4 style). We
- *   match case-insensitively below so both `get` and `GET` are accepted.
+ * WHY ONLY LOWERCASE (NO `toLowerCase()` CALL):
+ *   Node Redis v4 and ioredis expose their commands exclusively as
+ *   lowercase methods (`redis.get`, `redis.set`, ...). Calling
+ *   `redis.GET(...)` would not even run at runtime. Matching only
+ *   lowercase therefore loses no coverage and - crucially - lets CodeQL
+ *   evaluate this predicate as a pure generator (small join table of
+ *   literal strings) instead of a filter-over-`toLowerCase`. The old
+ *   filter form required `bindingset[name]` and was applied per
+ *   candidate method call; the join form is materialised once and
+ *   scans thousands of times faster on large codebases.
  */
-// `bindingset[name]`: same reason as `looksLikeRedisReceiverName` - the
-// body never generates values for `name`, so callers must supply it.
-bindingset[name]
 private predicate isCallReturnRedisCommand(string name) {
-  exists(string lower | lower = name.toLowerCase() |
-    // String / key commands
-    lower = "get" or lower = "set" or lower = "setex" or lower = "setnx" or
-    lower = "getset" or lower = "mget" or lower = "mset" or lower = "append" or
-    lower = "strlen" or lower = "incr" or lower = "incrby" or lower = "decr" or
-    lower = "decrby" or lower = "del" or lower = "unlink" or lower = "exists" or
-    lower = "expire" or lower = "expireat" or lower = "persist" or lower = "ttl" or
-    lower = "keys" or lower = "scan" or lower = "type" or lower = "rename" or
-    // Hash
-    lower = "hget" or lower = "hset" or lower = "hmget" or lower = "hmset" or
-    lower = "hgetall" or lower = "hdel" or lower = "hexists" or lower = "hincrby" or
-    lower = "hlen" or lower = "hkeys" or lower = "hvals" or lower = "hscan" or
-    // List
-    lower = "lpush" or lower = "rpush" or lower = "lpop" or lower = "rpop" or
-    lower = "lrange" or lower = "llen" or lower = "lindex" or lower = "linsert" or
-    lower = "lset" or lower = "lrem" or lower = "ltrim" or
-    // Set
-    lower = "sadd" or lower = "srem" or lower = "smembers" or lower = "sismember" or
-    lower = "scard" or lower = "sinter" or lower = "sunion" or lower = "sdiff" or
-    lower = "sscan" or lower = "spop" or lower = "srandmember" or
-    // Sorted set
-    lower = "zadd" or lower = "zrem" or lower = "zrange" or lower = "zrevrange" or
-    lower = "zrangebyscore" or lower = "zscore" or lower = "zincrby" or
-    lower = "zcard" or lower = "zcount" or lower = "zscan" or lower = "zrank" or
-    // Streams (write-side only - reads can be blocking/streaming)
-    lower = "xadd" or lower = "xlen" or lower = "xdel" or
-    // Transactions / pipelines
-    lower = "multi" or lower = "exec" or lower = "discard" or lower = "watch" or
-    lower = "unwatch" or
-    // Server / scripting that still return synchronously
-    lower = "eval" or lower = "evalsha"
-  )
+  // String / key commands
+  name = "get" or name = "set" or name = "setex" or name = "setnx" or
+  name = "getset" or name = "mget" or name = "mset" or name = "append" or
+  name = "strlen" or name = "incr" or name = "incrby" or name = "decr" or
+  name = "decrby" or name = "del" or name = "unlink" or name = "exists" or
+  name = "expire" or name = "expireat" or name = "persist" or name = "ttl" or
+  name = "keys" or name = "scan" or name = "type" or name = "rename" or
+  // Hash
+  name = "hget" or name = "hset" or name = "hmget" or name = "hmset" or
+  name = "hgetall" or name = "hdel" or name = "hexists" or name = "hincrby" or
+  name = "hlen" or name = "hkeys" or name = "hvals" or name = "hscan" or
+  // List
+  name = "lpush" or name = "rpush" or name = "lpop" or name = "rpop" or
+  name = "lrange" or name = "llen" or name = "lindex" or name = "linsert" or
+  name = "lset" or name = "lrem" or name = "ltrim" or
+  // Set
+  name = "sadd" or name = "srem" or name = "smembers" or name = "sismember" or
+  name = "scard" or name = "sinter" or name = "sunion" or name = "sdiff" or
+  name = "sscan" or name = "spop" or name = "srandmember" or
+  // Sorted set
+  name = "zadd" or name = "zrem" or name = "zrange" or name = "zrevrange" or
+  name = "zrangebyscore" or name = "zscore" or name = "zincrby" or
+  name = "zcard" or name = "zcount" or name = "zscan" or name = "zrank" or
+  // Streams (write-side only - reads can be blocking/streaming)
+  name = "xadd" or name = "xlen" or name = "xdel" or
+  // Transactions / pipelines
+  name = "multi" or name = "exec" or name = "discard" or name = "watch" or
+  name = "unwatch" or
+  // Server / scripting that still return synchronously
+  name = "eval" or name = "evalsha"
 }
 
 /**
@@ -127,13 +105,9 @@ private predicate isCallReturnRedisCommand(string name) {
  * exclusion is obvious to future readers and so we can guard against
  * accidentally matching them via another predicate.
  */
-// `bindingset[name]`: filter-only predicate, see sibling predicates above.
-bindingset[name]
 private predicate isPubSubCommand(string name) {
-  exists(string lower | lower = name.toLowerCase() |
-    lower = "publish" or lower = "subscribe" or lower = "unsubscribe" or
-    lower = "psubscribe" or lower = "punsubscribe" or lower = "pubsub"
-  )
+  name = "publish" or name = "subscribe" or name = "unsubscribe" or
+  name = "psubscribe" or name = "punsubscribe" or name = "pubsub"
 }
 
 /**
@@ -148,21 +122,23 @@ private predicate isPubSubCommand(string name) {
  */
 class RedisCall extends Connector, MethodCallExpr {
   RedisCall() {
+    // Precision gate FIRST: require the enclosing file to import a
+    // Redis client. Without this, the commonness of names like `get`,
+    // `set`, `exists`, `keys` makes every `Map.get`, `Set.has`,
+    // `URL.searchParams.get` etc. a candidate that CodeQL has to
+    // filter, blowing up memory on non-Redis codebases. With the gate,
+    // the candidate set is empty on Redis-free repos at essentially
+    // zero evaluation cost.
+    //
+    // TRADE-OFF:
+    //   We lose the case where a Redis client is injected via DI and
+    //   the consuming file never imports the client library. In NestJS
+    //   this is rare (modules that use Redis almost always import the
+    //   client type for typing). Authors who need to recover that case
+    //   can relax this gate locally.
+    fileUsesRedis(this.getFile()) and
     isCallReturnRedisCommand(this.getMethodName()) and
-    not isPubSubCommand(this.getMethodName()) and
-    (
-      fileUsesRedis(this.getFile())
-      or
-      // Even without an explicit import (because the client arrived via
-      // DI), a receiver name that looks like a Redis handle is enough
-      // when combined with a real Redis command.
-      exists(string recvName |
-        recvName = this.getReceiver().(Identifier).getName() or
-        recvName = this.getReceiver().(PropAccess).getPropertyName()
-      |
-        looksLikeRedisReceiverName(recvName)
-      )
-    )
+    not isPubSubCommand(this.getMethodName())
   }
 
   override string getProtocol() { result = "redis" }

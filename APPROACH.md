@@ -278,7 +278,97 @@ Same meaning; this time CodeQL can introduce the quantifier variable and reason 
 
 If you remember just one thing from this section: **CodeQL is a database query language, not a procedural language**. Every predicate must describe a finite, enumerable relation. When you hit "not bound to a value", ask: *at this point in the body, what finite set of values can my parameter take, and where does that set come from?* If your answer is "whatever the caller passes", write `bindingset[param]`. If it's "the body enumerates them", make sure the body actually has equalities or generator predicates on the parameter. Filters alone are never enough.
 
-## 12. Where the research paper pushed us further
+## 12. A second detour: when the query ran out of memory
+
+After the binding fixes, the analyser compiled cleanly — and then promptly OOM'd on a real repo. The lesson is worth its own section because it's one every static-analysis beginner meets, and the fix is not "give CodeQL more RAM".
+
+### The symptom
+
+```
+Running queries.
+CodeQL is out of memory. You may need to adjust the memory used by CodeQL
+using the --ram option.
+```
+
+### The cause: a too-generous candidate set
+
+The `RedisCall` characteristic predicate originally looked like this:
+
+```ql
+RedisCall() {
+  isCallReturnRedisCommand(this.getMethodName()) and    // "get", "set", "exists", ...
+  not isPubSubCommand(this.getMethodName()) and
+  (
+    fileUsesRedis(this.getFile())                        // cheap gate
+    or
+    exists(string recvName | ... | looksLikeRedisReceiverName(recvName))   // name heuristic
+  )
+}
+```
+
+Look at the allow-list of Redis commands we accepted: `get`, `set`, `exists`, `keys`, `del`, `watch`, `type`, `scan`, `multi`, `eval`. These are **extremely common JavaScript method names**. Every `Map.get`, `Set.has`, `URL.searchParams.get`, `EventEmitter.on`, custom getter you can think of — each one is a *candidate* that the query has to evaluate the filter on.
+
+In the codebase at hand there are no Redis imports, so the `fileUsesRedis` side of the `or` is always false. CodeQL then goes to the second side, computes `getReceiver().getName()` (or `.getPropertyName()`) for every candidate, and joins against the name heuristic. That intermediate join is what blew the memory budget.
+
+### The fix: gate first, filter later
+
+Reorder the characteristic predicate so the **cheap and precise gate runs first**:
+
+```ql
+RedisCall() {
+  fileUsesRedis(this.getFile()) and                       // <- gate
+  isCallReturnRedisCommand(this.getMethodName()) and
+  not isPubSubCommand(this.getMethodName())
+}
+```
+
+Now on a Redis-free codebase, the gate is false for every file, so the predicate produces zero instances in near-zero time. On a codebase that does use Redis, we get exactly the same detection as before for the imported-and-used case — we only sacrifice detection of Redis clients that reach a file purely through DI without ever being imported into it. For NestJS specifically that case is rare (modules importing Redis usually import the client's type for typing), and a more targeted detector can be added later if real projects need it.
+
+There's a second performance edit worth noting: I deleted the `exists(string lower | lower = name.toLowerCase() | ...)` shape from the three Redis predicates and replaced it with direct lowercase equalities. Node's Redis clients only expose lowercase methods at runtime, so there's no coverage loss. The payoff: `isCallReturnRedisCommand` now acts as a **generator** (a small table of ~80 literal strings that CodeQL can join against `MethodCallExpr.getMethodName()`) instead of a **filter** (which requires `bindingset[name]` and is applied one candidate at a time). Generators are dramatically faster in CodeQL's evaluator.
+
+### And one more: memoising the flow relation
+
+The `AxiosCall.getConfigKey` method had a positive and a negative branch, each running the same taint-flow join:
+
+```ql
+override string getConfigKey() {
+  exists(DataFlow::Node source, DataFlow::Node sink, MethodCallExpr mc |
+    ConfigToAxios::flow(source, sink) and ...
+    result = mc.getAnArgument().(StringLiteral).getValue()
+  )
+  or
+  not exists(DataFlow::Node source, DataFlow::Node sink |
+    ConfigToAxios::flow(source, sink) and ...
+  ) and result = ""
+}
+```
+
+CodeQL *could* memoise the shared sub-query, but making the sharing explicit is friendlier: hoist the flow-to-this-sink check into its own predicate and let both branches call it.
+
+```ql
+override string getConfigKey() {
+  configKeyFlowsTo(result, this)
+  or
+  result = "" and not configKeyFlowsTo(_, this)
+}
+
+private predicate configKeyFlowsTo(string key, AxiosCall call) { ... }
+```
+
+The relation is now named, and CodeQL materialises it exactly once.
+
+### Heuristics for the sophomore reader
+
+When a CodeQL query OOMs, don't reach for `--ram` first. Ask:
+
+1. **Is my characteristic predicate gated by something cheap and precise?** The rule of thumb is: your first conjunct should eliminate ~99% of candidates. Library imports, file extensions, receiver identity, class-hierarchy checks are all good first gates.
+2. **Do any of my predicates look like filters when they could be generators?** Equality on a literal string is a generator. `x.toLowerCase() = "foo"` is a filter. If you can remove a call chain on the parameter, do.
+3. **Am I running the same expensive sub-query twice in one predicate?** Hoist it into a named predicate so CodeQL has an obvious caching opportunity.
+4. **Does my characteristic predicate order its clauses from cheap-and-precise to expensive?** CodeQL's join planner is good but not magical; putting the gate first helps it.
+
+The OOM disappeared after applying the first and second heuristics. The third (hoisting the flow predicate) is preventative — it made the Axios side cheaper even though it wasn't the direct cause of the blow-up.
+
+## 13. Where the research paper pushed us further
 
 Two things from the paper we haven't implemented yet but would be the natural next steps:
 

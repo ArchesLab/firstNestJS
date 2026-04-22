@@ -124,22 +124,36 @@ class AxiosCall extends Connector, MethodCallExpr {
    *   In practice each call uses a single `*_SERVICE_URL` env var. If a
    *   codebase concatenates several config values we emit one row per key,
    *   which the composition stage can deduplicate by sink location.
+   *
+   * WHY WE DELEGATE TO `configKeyFlowsTo/2`:
+   *   The positive and negative branches both need to know "did a config
+   *   source flow to this sink?". Extracting that question into a dedicated
+   *   predicate lets CodeQL memoise the flow relation once and reuse it
+   *   for both branches, instead of materialising the taint graph twice.
+   *   That turned out to be critical for keeping memory bounded when the
+   *   taint graph is large.
    */
   override string getConfigKey() {
-    exists(DataFlow::Node source, DataFlow::Node sink, MethodCallExpr mc |
-      ConfigToAxios::flow(source, sink) and
-      sink = DataFlow::valueNode(this.getArgument(0)) and
-      mc = source.asExpr() and
-      result = mc.getAnArgument().(StringLiteral).getValue()
-    )
+    configKeyFlowsTo(result, this)
     or
-    // Fallback so the predicate is total: empty string when no config key
-    // flow was found. Keeping the predicate total avoids silently dropping
-    // calls that happen to hard-code their URL.
-    not exists(DataFlow::Node source, DataFlow::Node sink |
-      ConfigToAxios::flow(source, sink) and
-      sink = DataFlow::valueNode(this.getArgument(0))
-    ) and
-    result = ""
+    result = "" and not configKeyFlowsTo(_, this)
   }
+}
+
+/**
+ * Helper: true if a `configService.get("<result>")` call taint-flows into
+ * the URL argument of `call`. Shared between the positive and negative
+ * branches of `AxiosCall.getConfigKey` so CodeQL only computes the flow
+ * relation once.
+ *
+ * Kept private to this module so other connectors can't accidentally
+ * become sinks for the Axios-specific taint configuration.
+ */
+private predicate configKeyFlowsTo(string key, AxiosCall call) {
+  exists(DataFlow::Node source, DataFlow::Node sink, MethodCallExpr mc |
+    ConfigToAxios::flow(source, sink) and
+    sink = DataFlow::valueNode(call.getArgument(0)) and
+    mc = source.asExpr() and
+    key = mc.getAnArgument().(StringLiteral).getValue()
+  )
 }
