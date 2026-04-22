@@ -217,7 +217,68 @@ No other files change. No regression risk for Axios/gRPC/Redis. That's the payof
 
 ---
 
-## 11. Where the research paper pushed us further
+## 11. A detour: CodeQL's binding rules and the errors we had to fix
+
+The first time we shipped the new connectors, CodeQL's compiler lit up with a batch of errors like:
+
+- `'path' is not bound to a value.`
+- `'name' is not bound to a value.`
+- `could not resolve predicate looksLikeRedisReceiverName/1`
+- `asExpr() cannot be resolved for type RedisCall`
+
+Those messages look unrelated, but they're all symptoms of the **same rule** — and understanding that rule is the single most useful thing a sophomore can take away from this project.
+
+### The rule
+
+Every predicate parameter in CodeQL has a **binding mode**. It must be one of:
+- **Input-bound** — the caller always supplies it. Declared with `bindingset[x]`.
+- **Output-bound** — the predicate's body has a *generator* that produces the values.
+
+A **generator** is something CodeQL can enumerate a finite set from. Examples:
+- `x = "auth" or x = "clubs"` — direct equalities, generates two values.
+- `knownService(x)` — a predicate whose body itself generates.
+- `x = someNode.getName()` — a getter on a bound node, one value per node.
+
+A **filter** tests a value you already have; it does NOT generate. Examples:
+- `x.toLowerCase()` — needs `x` to already have a value.
+- `x.matches("%foo%")` — same, it tests.
+- `not P(x)` — negation needs `x` bound *before* the check.
+
+Mix those up and CodeQL refuses to compile, because a predicate with neither mode has no well-defined semantics (it would have to enumerate the infinite set of all strings).
+
+### How that showed up in our code
+
+**`pathBelongsToService(string path, string service)`** had this body:
+```ql
+knownService(service) and
+(path.matches(service + "/%") or path.matches("%/" + service + "/%"))
+```
+- `knownService(service)` is a generator for `service` ✓
+- `path.matches(...)` is a filter for `path` ✗ — no generator binds `path`.
+
+So `path` has neither input nor output mode. Fix: add `bindingset[path]` to declare it as input-mode. All our callers already pass `f.getRelativePath()` (bound), so the annotation is honest — we just hadn't told CodeQL.
+
+**Three Redis predicates** (`looksLikeRedisReceiverName`, `isCallReturnRedisCommand`, `isPubSubCommand`) all started with `exists(string lower | lower = name.toLowerCase() | ...)`. The `.toLowerCase()` call is a filter on `name`. Same fix: `bindingset[name]`.
+
+**The cascading errors** (`asExpr() cannot be resolved`, `could not resolve looksLikeRedisReceiverName/1`) weren't real bugs in our code — they were CodeQL reporting downstream symbols it couldn't type-check because the upstream predicates failed to compile. Fixing the root binding errors makes them disappear for free. This is worth remembering: when you get ten CodeQL errors, fix the earliest one first and re-run; half the rest usually evaporate.
+
+### One more trap: `not exists(EXPR)`
+
+Our Redis `getEndpoint` had:
+```ql
+not exists(this.getArgument(0)) and result = "KEY(*)"
+```
+This looks like "there is no first argument". It doesn't compile. `exists(...)` in CodeQL must quantify over a **typed variable** — you can't just feed it an expression. The correct form is:
+```ql
+not exists(Expr firstArg | firstArg = this.getArgument(0)) and result = "KEY(*)"
+```
+Same meaning; this time CodeQL can introduce the quantifier variable and reason about it.
+
+### The mental model
+
+If you remember just one thing from this section: **CodeQL is a database query language, not a procedural language**. Every predicate must describe a finite, enumerable relation. When you hit "not bound to a value", ask: *at this point in the body, what finite set of values can my parameter take, and where does that set come from?* If your answer is "whatever the caller passes", write `bindingset[param]`. If it's "the body enumerates them", make sure the body actually has equalities or generator predicates on the parameter. Filters alone are never enough.
+
+## 12. Where the research paper pushed us further
 
 Two things from the paper we haven't implemented yet but would be the natural next steps:
 
@@ -225,3 +286,16 @@ Two things from the paper we haven't implemented yet but would be the natural ne
 - **Handwritten component models.** The paper's 15 handwritten models for the ROS core library cover gaps in the static analysis. Our equivalent would be handwritten models for third-party NestJS interceptors or custom transport adapters that static analysis can't see through. The place to plug them in is a new `models/` directory with one YAML file per component.
 
 Both are additive and fit the same layered structure — which is the whole point of the design.
+
+---
+
+## Appendix: troubleshooting checklist for CodeQL compile errors
+
+| Symptom (error text) | Likely cause | First thing to try |
+|---|---|---|
+| `'X' is not bound to a value.` | Parameter `X` has no generator and no `bindingset`. | Add `bindingset[X]` if the caller always supplies it; otherwise add a generator to the body. |
+| `could not resolve predicate P/n` | `P` failed to compile earlier in the file. | Scroll up — fix the first binding error you see. |
+| `asExpr() / getFoo() cannot be resolved for type Y` | `Y` failed to compile, so its type isn't resolvable. | Same as above — cascading. |
+| `getModuleSpecifier() cannot be resolved for type ...ImportDeclaration` | An auto-fix / manual edit introduced a non-existent method. | Revert to `getImportedPath().getValue()`. |
+| `predicate 'getImportedPath' has been deprecated` (warning) | Safe to ignore, or centralise the call in one helper for easy migration later. | Keep using it; the method still works. |
+| `not exists(SOME_EXPR)` syntax error | Bare expression inside `exists()`. | Use `not exists(Type v | v = SOME_EXPR)`. |
