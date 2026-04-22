@@ -185,20 +185,43 @@ Nothing in the six sample NestJS services. Nothing in `dataflow6.ql` (kept as a 
 
 ## 9. How to run the new pipeline end-to-end
 
-```bash
-# 1. Run the unified CodeQL query (replaces dataflow6.ql):
-codeql database analyze <db> my-research-project/all_connectors.ql \
-  --format=csv --output=my-research-project/tests/final_result.txt
+**Important:** `codeql database analyze` is for **alert-style** queries (`@kind problem` / `path-problem`). Our `all_connectors.ql` is `@kind table` — it emits one row per connector with custom columns, not security findings. Running `database analyze` on it fails with `Unknown kind "Table" [UNSUPPORTED_KIND]` because the analyzer's result interpreter only knows alert kinds.
 
-# 2. Convert to PlantUML using the new pipeline:
+The correct workflow for a `@kind table` query is two steps: **`codeql query run`** to produce a BQRS (CodeQL's raw result format), then **`codeql bqrs decode`** to convert it to CSV. There's a PowerShell helper in the repo that does both.
+
+```powershell
+# From my-research-project/ on Windows:
+./run_all_connectors.ps1 -Database ../my-db -Ram 16384
+
+# Or, manually:
+codeql query run --database=../my-db --output=./results.bqrs `
+    --ram=16384 ./all_connectors.ql
+codeql bqrs decode --format=csv --output=./tests/final_result.txt `
+    ./results.bqrs
+```
+
+```bash
+# Equivalent on macOS / Linux:
+codeql query run --database=../my-db --output=./results.bqrs \
+    --ram=16384 ./all_connectors.ql
+codeql bqrs decode --format=csv --output=./tests/final_result.txt \
+    ./results.bqrs
+```
+
+Once `tests/final_result.txt` exists, feed it to the Python pipeline:
+
+```bash
 cd my-research-project
 python -m pipeline.converter \
   --input tests/final_result.txt \
   --output ../diagram.puml
 
-# 3. Render the diagram
 plantuml ../diagram.puml
 ```
+
+### Why not just change the query to `@kind problem`?
+
+An alert-style query has a fixed `select` shape: `from X x, string msg where ... select x, msg`. Our connector rows have seven columns, not two; bending them into an alert shape would lose the protocol/operation/endpoint structure the Python pipeline depends on. Keeping `@kind table` and using the right command is the non-destructive fix.
 
 If you only have Axios results (no gRPC/Redis in your project), the new query will still produce only Axios rows and the output will match the legacy `diagram.puml` — modulo the new edge-style legend. That's the sanity check we care about: the extension is a **strict superset**, not a replacement that could break the existing workflow.
 
