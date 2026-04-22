@@ -170,6 +170,79 @@ The edge-case list above has a clear takeaway: **the protocol-agnostic parts of 
 
 That's exactly why a semantics-preserving refactor makes sense before adding gRPC and Redis. Without it, each new protocol would duplicate `resolveExprValue`, `callerService`, and the env-merging logic — tripling the surface area where bugs can drift between implementations. The refactor (added in the next commit) pulls the shared core into dedicated modules so the gRPC and Redis extensions become small, focused additions rather than parallel rewrites.
 
+## 6. The Refactor — Extracting a Shared Analysis Core
+
+After writing the API mappings, I performed a **semantics-preserving** refactor that pulls the protocol-agnostic parts of the pipeline into dedicated modules. "Semantics-preserving" has a precise meaning here: running the refactored pipeline on the existing Axios sample must produce the same `final_result.txt` and the same `diagram.puml` as before — byte-for-byte. It does, and I verified it on the checked-in `codeql_results.csv`.
+
+### 6.1 What moved where
+
+**CodeQL** (new `my-research-project/lib/` folder):
+
+| New file | Contents |
+| --- | --- |
+| `lib/ExprResolution.qll` | `valueOf`, `resolveExprValue`, `resolveTemplateElements`, `resolveUrlAtSink` — the ~100-line recursive string resolver that rebuilds URLs/pattern strings from ASTs |
+| `lib/ServiceIdentification.qll` | `callerService` — the file-path-based service naming predicate |
+| `lib/ConfigSource.qll` | `isConfigServiceGetCall` (the source predicate) and `thisPropertyFlowStep` (the `this.X = Y → this.X` transfer step) |
+
+`dataflow6.ql` shrinks from ~310 lines to ~55 lines. What remains is exactly the protocol-specific parts for Axios: the `isSink` predicate (receiver named `axios`, sink is argument 0) and `httpMethod(sink)` (the verb extractor). The CodeQL `DataFlow::ConfigSig` implementation now reads as:
+
+```ql
+module ConfigToAxiosConfig implements DataFlow::ConfigSig {
+  predicate isSource(DataFlow::Node source) { isConfigServiceGetCall(source) }
+  predicate isSink(DataFlow::Node sink) {
+    exists(MethodCallExpr axiosCall |
+      axiosCall.getReceiver().(Identifier).getName() = "axios" and
+      sink = DataFlow::valueNode(axiosCall.getArgument(0))
+    )
+  }
+  predicate isAdditionalFlowStep(DataFlow::Node pred, DataFlow::Node succ) {
+    thisPropertyFlowStep(pred, succ)
+  }
+}
+```
+
+Adding gRPC will mean writing a sibling `.ql` query that keeps the same three lib imports and swaps `isSink` / `httpMethod` for gRPC-shaped variants (`client.getService<T>('X')` sinks, port-type built from `@GrpcMethod` args). Redis will do the analogous thing for `@MessagePattern` + `client.send(...)`.
+
+**Python** (new `my-research-project/pipeline/` package):
+
+| New file | Contents |
+| --- | --- |
+| `pipeline/models.py` | `ConnectorEdge` dataclass — the unified CPC-edge representation |
+| `pipeline/env_resolver.py` | `.env` file merging, placeholder substitution, `*_SERVICE_URL` → service-name inference |
+| `pipeline/csv_parser.py` | CodeQL CSV → `ConnectorEdge` iterator with resolution and skip rules preserved |
+| `pipeline/formatter.py` | `ConnectorEdge` → pipe-delimited text with the exact column widths used before |
+| `pipeline/text_parser.py` | Pipe-delimited text → `ConnectorEdge`, with helpers to split the URL into base + path and infer target service |
+| `pipeline/plantuml.py` | Edge list → PlantUML string, with the same hardcoded components list and set-based dedup |
+
+`tests/query.py` and `converter.py` become thin entry-point wrappers that call into the pipeline. Their hardcoded paths and component lists are preserved (the refactor does not fix pre-existing issues — that would change behaviour).
+
+### 6.2 Why this specific factoring
+
+The edge-case analysis in Section 4 makes the carve-out obvious: the parts of the pipeline that carry most of the complexity (expression resolution, env merging, service inference, dedup rules, output formatting) are the same regardless of whether the sink is an `axios.post` or a `redis.get` or a `client.send`. Leaving them inlined in `dataflow6.ql` / `query.py` / `converter.py` would force every new protocol to copy-paste or re-implement them — a classic drift hazard.
+
+Three specific design choices follow from the edge analysis:
+
+1. **The source predicate lives in a library.** Axios, gRPC, and Redis all consume `ConfigService.get('X_SERVICE_URL')` (or `X_GRPC_URL`, `REDIS_HOST`). The URL-resolution machinery doesn't care which protocol consumes the string — only the sink cares. So the source is genuinely protocol-agnostic.
+2. **The `this.X = Y → this.X` transfer step lives in a library.** Every NestJS service stores injected config in a `readonly` property in the constructor. All three protocols need that transfer step.
+3. **`httpMethod(sink)` stays *inline* in `dataflow6.ql`.** The port-type verb is intrinsically Axios-specific — a gRPC query will replace this predicate with one that returns `<package>.<Service>/<Method>`, and a Redis query with one that returns the command verb or routing pattern. Hoisting `httpMethod` to a library would pull a protocol-specific concept into the shared core, which is a smell. Leaving it beside its `isSink` keeps each query self-contained for its protocol.
+
+### 6.3 Correctness testing
+
+I verified the refactor against the existing `codeql_results.csv` by running both the pre-refactor and post-refactor Python pipelines and diffing their outputs:
+
+- **Stage 1** (`query.py` → `final_result.txt`): byte-identical.
+- **Stage 2** (`converter.py` → `diagram.puml`): byte-identical (and, because Python's set-based dedup in `converter.py` already produced hash-order-dependent output, the refactor preserves the same ordering behaviour as before).
+
+The CodeQL side can only be verified by running `codeql database analyze` on a NestJS database, which requires the CodeQL CLI. Manually diffing `dataflow6.ql` against its pre-refactor form shows that the only semantic-bearing changes are three `import` lines; every extracted predicate (`valueOf`, `resolveExprValue`, `resolveTemplateElements`, `resolveUrlAtSink`, `callerService`, `isConfigServiceGetCall`, `thisPropertyFlowStep`) is verbatim.
+
+### 6.4 What the refactor does *not* do
+
+On purpose:
+- It does not generalize `callerService` (still hard-coded for the six sample services). Changing that would change output for new codebases — not semantics-preserving.
+- It does not tighten the overly-broad source predicate (see §4.2 / §4.3). Tightening it to require `%_URL%` in the config key would drop StringLiteral sources and alter the set of reported flows.
+- It does not fix the Windows hardcoded paths in `tests/query.py`. Parameterising them would be trivial but again would be a behaviour change — the refactor leaves the constants visible as module-level `DEFAULT_*` so a follow-up can add a CLI flag without touching the core.
+- It does not add gRPC or Redis support. The refactor creates the *platform* for those extensions; the extensions themselves are the next concrete work item.
+
 ---
 
-*Section 6 (the refactor) and Section 7 (future work) are added by later commits.*
+*Section 7 (future work) is added by a later commit.*
