@@ -243,6 +243,65 @@ On purpose:
 - It does not fix the Windows hardcoded paths in `tests/query.py`. Parameterising them would be trivial but again would be a behaviour change — the refactor leaves the constants visible as module-level `DEFAULT_*` so a follow-up can add a CLI flag without touching the core.
 - It does not add gRPC or Redis support. The refactor creates the *platform* for those extensions; the extensions themselves are the next concrete work item.
 
----
+## 7. Future Work — Grounded in the Literature
 
-*Section 7 (future work) is added by a later commit.*
+The refactor gives us a clean platform, but the edges in §4 — dynamic URL construction, structural typing, cross-repository reconciliation, loose source predicates, and brittle service identification — remain real limits on the analysis. This section connects each of those edges to published work we can build on, drawing from a targeted literature survey over OpenAlex, arXiv, and the major SE venues.
+
+### 7.1 Microservice architecture recovery — the direct baseline
+
+The closest methodological ancestor to our CodeQL-based analysis is the Baylor/Cerny group's body of work on statically reconstructing Spring Boot service meshes.
+
+1. **Bushong, Das, Al Maruf, and Cerny (2021).** *Using Static Analysis to Address Microservice Architecture Reconstruction.* ASE 2021. DOI: [10.1109/ASE51524.2021.9678749](https://doi.org/10.1109/ASE51524.2021.9678749).
+   This paper statically extracts HTTP-level communication between Spring Boot Java microservices and renders a communication diagram + context map. It is essentially our pipeline, one protocol over, one language over. Its *explicit* limits — Java only, REST only, reliant on Spring annotations — are exactly what the present work extends. Their HTTP endpoint-matching strategy is the direct analogue of our connector-synthesis step, and their reliance on annotations is what we rely on too (`@GrpcMethod`, `@MessagePattern`, `@Controller`).
+2. **Bushong, Das, and Cerny (2022).** *Reconstructing the Holistic Architecture of Microservice Systems using Static Analysis.* CLOSER 2022. DOI: [10.5220/0011032100003200](https://doi.org/10.5220/0011032100003200).
+   Extends the prior work to multi-view recovery (service graph + bounded context + data model). The multi-view framing is a natural extension for our future work: once we recover gRPC/Redis edges, we can layer a data-model view (which services share a Redis datastore, which proto messages cross which edges).
+3. **Schiewe, Curtis, Bushong, and Cerny (2022).** *Advancing Static Code Analysis With Language-Agnostic Component Identification.* IEEE Access. DOI: [10.1109/ACCESS.2022.3160485](https://doi.org/10.1109/ACCESS.2022.3160485).
+   Proposes a language-agnostic intermediate representation for microservice SAR, prototyped on Java Spring and .NET. Our TypeScript extractor is the *third* ecosystem this IR would need to target, and the paper's abstractions directly motivate why the refactor split `ConnectorEdge` / `ExprResolution` out of the Axios-specific code.
+4. **Cerny, Abdelfattah, Bushong, Al Maruf, and Taibi (2022).** *Microservice Architecture Reconstruction and Visualization Techniques: A Review.* SOSE 2022. DOI: [10.1109/SOSE55356.2022.00011](https://doi.org/10.1109/SOSE55356.2022.00011).
+   A systematic review cataloguing static, dynamic, and hybrid SAR approaches. Its explicit gap list — polyglot microservices, multi-protocol connectors, weak tool support beyond Java — is the single most useful positioning for this work, and confirms that extending to TypeScript + gRPC + Redis fills recognised gaps.
+5. **Schneider, Bakhtin, Li, Soldani, Brogi, Cerny, Scandariato, and Taibi (2025).** *Comparison of Static Analysis Architecture Recovery Tools for Microservice Applications.* Empirical Software Engineering. DOI: [10.1007/s10664-025-10686-2](https://doi.org/10.1007/s10664-025-10686-2).
+   A head-to-head comparison of static microservice SAR tools on a shared benchmark, reporting individual F1 up to 0.86 and an ensemble F1 of 0.91. Tells us two things: (a) there's a shared benchmark we should submit against; (b) no single tool yet handles all languages and protocols well — direct empirical support for building the gRPC + Redis extensions.
+6. **Wang, Hu, Kong, Ouyang, Li, Xu, and Shao (2023).** *Microservice architecture recovery based on intra-service and inter-service features.* Journal of Systems and Software. DOI: [10.1016/j.jss.2023.111754](https://doi.org/10.1016/j.jss.2023.111754).
+   Combines intra-service and inter-service features to cluster services and recover the architecture. The feature-engineering insight (weighted call-site signatures for inter-service edges) bears directly on how our connector-synthesis step should weight Axios vs. gRPC vs. Redis evidence when the same requirer calls into multiple transports.
+
+### 7.2 Component-port-connector recovery from other ecosystems — ROS as a methodological template
+
+The single closest methodological parallel to this work is the CMU group's ROS-focused line. Robots and microservice meshes are astonishingly similar from an SAR perspective: components communicate over API calls whose targets are strings that are almost never literals, configuration is late-bound, and the "architecture" only exists implicitly in the composition of scattered source and config files.
+
+7. **Timperley, Dürschmid, Schmerl, Garlan, and Le Goues (2022).** *ROSDiscover: Statically Detecting Run-Time Architecture Misconfigurations in Robotics Systems.* ICSA 2022. DOI: [10.1109/ICSA53651.2022.00019](https://doi.org/10.1109/ICSA53651.2022.00019).
+   The direct methodological template. Nodes are components, topics/services are ports, and dynamic name resolution mirrors our `process.env`-based URL reconstruction. Its three-stage pipeline (Component Model Recovery → System Architecture Composition → Bug Detection via Rule Checking) maps almost one-to-one onto our `dataflow6.ql` → `query.py` → `converter.py` pipeline. The paper's symbolic-execution recipe for resolving topic names — where variables that depend on parameter reads are tracked through their reaching definitions and the results of parameter lookups are represented symbolically — is the concrete template we need for resolving Axios base URLs, gRPC method strings, and Redis keys. Especially relevant to §4.4 (expression resolution edges) and §4.11 (cross-repo reality): ROSDiscover explicitly mentions that the approach is "generalizable" to microservice frameworks (e.g. Spring, Kafka), which is exactly the bridge our TypeScript extractor begins to build.
+8. **Dürschmid, Timperley, Garlan, and Le Goues (2024).** *ROSInfer: Statically Inferring Behavioral Component Models for ROS-based Robotics Systems.* ICSE 2024. DOI: [10.1145/3597503.3639206](https://doi.org/10.1145/3597503.3639206).
+   Extends ROSDiscover from structural CPC reconstruction to behavioural component models — state machines over publish/subscribe interactions — via cross-repository static analysis of heterogeneous ROS codebases. For our work, once we reliably recover the CPC graph across Axios/gRPC/Redis, ROSInfer's approach is the natural next rung: move from "service A calls service B" to "service A has a state machine in which method X is called only after method Y". That is how architecture recovery stops being a picture and becomes an enforceable contract.
+9. **Timperley et al. (2024).** *ROBUST: 221 Bugs in the Robot Operating System.* Empirical Software Engineering. DOI: [10.1007/s10664-024-10440-0](https://doi.org/10.1007/s10664-024-10440-0).
+   An empirical bug study showing a substantial fraction of ROS defects are architectural/configuration mismatches — exactly the bug class our extended extractor could catch in microservices. The taxonomy (missing publisher, mismatched topic name, type incompatibility) maps directly onto what the analyzer must detect in a mesh (requirer without provider, URL typo, DTO mismatch). A practical future-work item is to produce an analogous catalogue for real microservice repos and evaluate the extended extractor against it.
+
+### 7.3 Dynamic name resolution — the symbolic-execution toolbox
+
+Section 4.4 lists a long tail of expression shapes the current `resolveExprValue` cannot fold: ternaries, optional chaining, string methods, tagged templates, array joins, union values. Scaling out of these toward full-string reasoning requires tooling already well established in the security community.
+
+10. **Saxena, Akhawe, Hanna, Mao, McCamant, and Song (2010).** *A Symbolic Execution Framework for JavaScript (Kudzu).* IEEE S&P 2010. DOI: [10.1109/SP.2010.38](https://doi.org/10.1109/SP.2010.38).
+    The foundational work for symbolic execution of JavaScript, combining a JS symbolic executor with a string-constraint solver. Motivated by client-side XSS discovery, but the engine is exactly what we need for Component-Instance-Identity resolution: recovering path parameters and URL fragments concatenated from environment variables and route builders. Replacing our hand-rolled `resolveExprValue` with a Kudzu-style engine would close most of the §4.4 gaps at once.
+11. **Ganesh, Kieżun, Artzi, Guo, Hooimeijer, and Ernst (2011).** *HAMPI: A String Solver for Testing, Analysis and Vulnerability Detection.* Lecture Notes in Computer Science. DOI: [10.1007/978-3-642-22110-1_1](https://doi.org/10.1007/978-3-642-22110-1_1).
+    HAMPI is the canonical string-constraint solver underpinning Kudzu and many later analyses. It solves constraints over fixed-size string variables with regular-language and context-free constraints. For our extractor, HAMPI-style solving is the concrete technique needed to turn a symbolic URL like `${baseUrl}/users/${userId}/orders` into a finite set of concrete endpoint candidates that can be matched against provider ports synthesised from `@Controller` / `@GrpcMethod` / `@MessagePattern` decorators.
+
+### 7.4 Evolution, benchmarking, and framing
+
+12. **Alshuqayran, Ali, and Evans (2018).** *Towards Micro Service Architecture Recovery: An Empirical Study.* ICSA 2018. DOI: [10.1109/ICSA.2018.00014](https://doi.org/10.1109/ICSA.2018.00014).
+    One of the earliest empirical investigations of microservice SAR, mining eight OSS systems to identify patterns of inter-service dependency, deployment, and communication. It establishes the problem space our work operates in and is still the canonical "why" citation for every new extractor.
+13. **Cerny, Abdelfattah, Yero, and Taibi (2024).** *From Static Code Analysis to Visual Models of Microservice Architecture.* Cluster Computing. DOI: [10.1007/s10586-024-04394-7](https://doi.org/10.1007/s10586-024-04394-7).
+    Integrates multiple static analyses into unified visual models for Spring-based stacks. Its extractors → IR → views structure is a larger-scale version of the `pipeline/` package introduced by the refactor, and the paper explicitly lists multi-language support as future work — which our TypeScript extension contributes to.
+14. **Abdelfattah, Cerny, Yero Salazar, Li, Taibi, and Song (2024).** *Assessing Evolution of Microservices Using Static Analysis.* Applied Sciences. DOI: [10.3390/app142210725](https://doi.org/10.3390/app142210725).
+    Proposes seven service-view and data-view metrics computed purely from static analysis to track microservice evolution across versions. Because our extractor produces time-series inputs naturally (just run it on historical commits), this is an immediate downstream use case the refactor enables — the edges are protocol-independent, so metrics defined over them are too.
+
+### 7.5 What this implies as next work
+
+Putting §4 (edges) and §7.1–§7.4 (literature) together produces a concrete roadmap:
+
+- **Sharpen the source predicate** (§4.2) by typing `ConfigService` through its DI binding, following the ROSDiscover pattern of combining API identification with variable resolution.
+- **Disambiguate `redis.get` from `configService.get`** (§4.3) by receiver-type matching, not name matching — straightforward once the core supports typed sinks.
+- **Replace `resolveExprValue` with a string-constraint-backed resolver** (§4.4, §4.7) building on Kudzu + HAMPI — this is the biggest quality lever the roadmap offers, and it directly addresses the path-sensitivity gap called out in ROSDiscover's own discussion section.
+- **Cross-repository synthesis** (§4.11) by running the extractor per repository and adding an explicit merge step that reconciles `*_SERVICE_URL` consumers with their corresponding providers — mirrors the "System Architecture Composition" stage in ROSDiscover and the unified visual model in Cerny 2024.
+- **Benchmarking** against Schneider et al. 2025's shared SAR benchmark once the gRPC and Redis extensions are in place, giving empirical grounding for the contribution.
+- **Evolution tracking** (Abdelfattah et al. 2024) as an immediate downstream application once the analysis is stable.
+
+The refactor is the enabling step. Everything above either adds a new lib/*.qll predicate, a new pipeline/ module, or a per-protocol sibling of `dataflow6.ql` — shapes the refactor was explicitly designed to absorb.
