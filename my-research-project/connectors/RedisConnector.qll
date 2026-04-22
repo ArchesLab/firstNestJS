@@ -57,6 +57,11 @@ private predicate fileUsesRedis(File f) {
  *   Redis client) are filtered by the command-name check below: if the
  *   called method isn't a Redis command, the sink is rejected.
  */
+// `bindingset[name]`: `name` is always supplied by the caller (it's the
+// identifier string of a receiver). The body is a pure filter - `matches`
+// and equality checks can't enumerate strings - so CodeQL needs the
+// explicit binding declaration to typecheck.
+bindingset[name]
 private predicate looksLikeRedisReceiverName(string name) {
   exists(string lower | lower = name.toLowerCase() |
     lower = "redis" or lower = "redisclient" or lower = "ioredis" or
@@ -78,6 +83,9 @@ private predicate looksLikeRedisReceiverName(string name) {
  *   Methods on Node Redis clients are lower-case (`redis` v4 style). We
  *   match case-insensitively below so both `get` and `GET` are accepted.
  */
+// `bindingset[name]`: same reason as `looksLikeRedisReceiverName` - the
+// body never generates values for `name`, so callers must supply it.
+bindingset[name]
 private predicate isCallReturnRedisCommand(string name) {
   exists(string lower | lower = name.toLowerCase() |
     // String / key commands
@@ -119,6 +127,8 @@ private predicate isCallReturnRedisCommand(string name) {
  * exclusion is obvious to future readers and so we can guard against
  * accidentally matching them via another predicate.
  */
+// `bindingset[name]`: filter-only predicate, see sibling predicates above.
+bindingset[name]
 private predicate isPubSubCommand(string name) {
   exists(string lower | lower = name.toLowerCase() |
     lower = "publish" or lower = "subscribe" or lower = "unsubscribe" or
@@ -183,7 +193,10 @@ class RedisCall extends Connector, MethodCallExpr {
       result = "KEY(" + resolveExprValue(firstArg) + ")"
     )
     or
-    not exists(this.getArgument(0)) and
+    // No first argument (e.g. `MULTI`, `EXEC`, pipeline terminators).
+    // Use a quantified existence check because `not exists(EXPR)` without
+    // a binding variable is not valid QL.
+    not exists(Expr firstArg | firstArg = this.getArgument(0)) and
     result = "KEY(*)"
   }
 
