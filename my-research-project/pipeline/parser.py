@@ -54,7 +54,12 @@ def _is_header_or_separator(line: str) -> bool:
 def parse_line(line: str) -> ConnectorRecord | None:
     """Turn one pipe-separated row into a `ConnectorRecord`, or `None`
     when the row is malformed or uses an unknown protocol."""
-    parts = [p.strip() for p in line.split("|")]
+    def strip_quotes(s):
+        s = s.strip()
+        if s.startswith('"') and s.endswith('"'):
+            return s[1:-1]
+        return s
+    parts = [strip_quotes(p) for p in line.split(",")]
     if len(parts) < len(EXPECTED_COLUMNS):
         return None
 
