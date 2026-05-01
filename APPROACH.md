@@ -194,10 +194,8 @@ The correct workflow for a `@kind table` query is two steps: **`codeql query run
 ./run_all_connectors.ps1 -Database ../my-db -Ram 16384
 
 # Or, manually:
-codeql query run --database=../my-db --output=./results.bqrs `
-    --ram=16384 ./all_connectors.ql
-codeql bqrs decode --format=csv --output=./tests/final_result.txt `
-    ./results.bqrs
+codeql query run --database=../my-db --output=./results.bqrs --ram=16384 ./all_connectors.ql
+codeql bqrs decode --format=csv --output=./tests/final_result.txt ./results.bqrs
 ```
 
 ```bash
@@ -212,9 +210,7 @@ Once `tests/final_result.txt` exists, feed it to the Python pipeline:
 
 ```bash
 cd my-research-project
-python -m pipeline.converter \
-  --input tests/final_result.txt \
-  --output ../diagram.puml
+python -m pipeline.converter --input tests/final_result.txt --output ../diagram.puml
 
 plantuml ../diagram.puml
 ```

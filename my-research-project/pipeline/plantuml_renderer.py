@@ -104,8 +104,26 @@ def _edge_label(record: ConnectorRecord) -> str:
     return record.operation
 
 
-def render(records: List[ConnectorRecord]) -> str:
-    """Produce a PlantUML document from a list of connector records."""
+def render(records: List[ConnectorRecord],
+           connect_ports: bool = True) -> str:
+    """Produce a PlantUML document from a list of connector records.
+
+    Args:
+        records: Normalised connector records.
+        connect_ports: If True (default), combine ports that share the
+            same label on each component and draw edges from the caller
+            component directly to the shared portin.  If False, show
+            every port individually with separate portin/portout per
+            record and draw edges from caller portout to target portin.
+    """
+    if connect_ports:
+        return _render_combined(records)
+    return _render_individual(records)
+
+
+def _render_combined(records: List[ConnectorRecord]) -> str:
+    """Combined-ports mode: deduplicate port labels, edges from
+    component → shared portin."""
     components = _collect_components(records)
 
     # Port slot per component - deduplicated so we don't emit repeat
@@ -169,6 +187,87 @@ def render(records: List[ConnectorRecord]) -> str:
     return "\n".join(lines) + "\n"
 
 
+def _render_individual(records: List[ConnectorRecord]) -> str:
+    """Individual-ports mode: every record gets its own portin and
+    portout; edges go from caller portout → target portin.
+
+    Port labels use the full endpoint path for maximum architectural
+    accuracy.  No layout hints are emitted so PlantUML's engine can
+    calculate the shortest path between components.
+    """
+    components = _collect_components(records)
+
+    # Per-component running counters for portin / portout.
+    portin_counters: Dict[str, int] = defaultdict(int)
+    portout_counters: Dict[str, int] = defaultdict(int)
+
+    # Per-component ordered lists of (label, alias) for ports.
+    component_portins: Dict[str, List[tuple]] = defaultdict(list)
+    component_portouts: Dict[str, List[tuple]] = defaultdict(list)
+
+    # For each valid record, store the assigned port aliases so we can
+    # emit the right edge later.
+    record_ports: List[tuple] = []   # (portout_alias, portin_alias, record)
+
+    for r in sorted(records, key=_record_sort_key):
+        if r.caller_service not in components:
+            continue
+        if r.target_service not in components:
+            continue
+
+        # Assign a portout on the caller.
+        portout_counters[r.caller_service] += 1
+        out_idx = portout_counters[r.caller_service]
+        caller_pfx = _short_prefix(r.caller_service)
+        portout_alias = f"{caller_pfx}_out{out_idx}"
+        portout_label = f"out{out_idx}"
+        component_portouts[r.caller_service].append(
+            (portout_label, portout_alias)
+        )
+
+        # Assign a portin on the target — full endpoint path.
+        portin_counters[r.target_service] += 1
+        in_idx = portin_counters[r.target_service]
+        target_pfx = _short_prefix(r.target_service)
+        portin_alias = f"{target_pfx}_p{in_idx}"
+        portin_label = r.endpoint
+        component_portins[r.target_service].append(
+            (portin_label, portin_alias)
+        )
+
+        record_ports.append((portout_alias, portin_alias, r))
+
+    lines: List[str] = []
+    lines.append("@startuml")
+
+    # Emit component blocks with their ports.  No together/hidden
+    # edges — let PlantUML's auto-layout determine placement.
+    for comp in components:
+        portins = component_portins.get(comp, [])
+        portouts = component_portouts.get(comp, [])
+        if not portins and not portouts:
+            continue
+        comp_name = comp.title()
+        lines.append(f"component {comp_name} {{")
+        for label, alias in portins:
+            lines.append(f'  portin "{label}" as {alias}')
+        for label, alias in portouts:
+            lines.append(f'  portout "{label}" as {alias}')
+        lines.append("}")
+        lines.append("")
+
+    # Emit connections from portout → portin.
+    for portout_alias, portin_alias, r in record_ports:
+        arrow = EDGE_STYLE.get(r.protocol, "-->")
+        lines.append(
+            f'{portout_alias} {arrow} {portin_alias} '
+            f': {r.operation.upper()}'
+        )
+
+    lines.append("@enduml")
+    return "\n".join(lines) + "\n"
+
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -178,6 +277,12 @@ def _alias(component: str) -> str:
     sanitise. This is the one piece of glue that lets `grpc:UserService`
     and `unknown-service` still appear in diagrams."""
     return component.replace(":", "_").replace("-", "_")
+
+
+def _short_prefix(component: str) -> str:
+    """Single-letter prefix for port aliases in individual-ports mode
+    (g_ = gateway, a_ = auth, u_ = users, etc.)."""
+    return _alias(component)[0]
 
 
 def _port_alias(component: str, port: str) -> str:

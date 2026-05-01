@@ -49,10 +49,19 @@ def _build_arg_parser() -> argparse.ArgumentParser:
         "--output", "-o", type=Path, default=DEFAULT_OUTPUT,
         help="Destination PlantUML file (default: diagram.puml at repo root)",
     )
+    p.add_argument(
+        "--no-connect-ports", action="store_true", default=False,
+        help=(
+            "Show every port individually instead of combining ports that "
+            "share the same label. When set, each record gets its own "
+            "portin/portout and edges connect portout to portin."
+        ),
+    )
     return p
 
 
-def run(input_path: Path, output_path: Path) -> None:
+def run(input_path: Path, output_path: Path,
+        connect_ports: bool = True) -> None:
     """Execute the full pipeline - the only non-trivial function in this
     file.
 
@@ -70,7 +79,7 @@ def run(input_path: Path, output_path: Path) -> None:
         return
 
     cleaned = [normalizers.normalise(r) for r in raw_records]
-    plantuml = plantuml_renderer.render(cleaned)
+    plantuml = plantuml_renderer.render(cleaned, connect_ports=connect_ports)
 
     output_path.write_text(plantuml, encoding="utf-8")
     print(
@@ -81,7 +90,8 @@ def run(input_path: Path, output_path: Path) -> None:
 
 def main() -> None:
     args = _build_arg_parser().parse_args()
-    run(args.input, args.output)
+    run(args.input, args.output,
+        connect_ports=not args.no_connect_ports)
 
 
 if __name__ == "__main__":

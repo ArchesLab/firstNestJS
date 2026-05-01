@@ -3,6 +3,7 @@ dist/
 .env
 codeql/
 my-db/
+nestjs-db/
 my-research-project/tests/test/test.testproj
 my-research-project/tests/function/function.testproj
 my-research-project/evaluator-logs
