@@ -10,26 +10,26 @@ GITHUB_GRAPHQL_URL = "https://api.github.com/graphql"
 
 # Template for searching repository metadata
 REPO_QUERY = """
-query FindNestJSMicroservices($queryString: String!, $cursor: String) {
-  search(query: $queryString, type: REPOSITORY, first: 20, after: $cursor) {
-    repositoryCount
-    pageInfo {
-      hasNextPage
-      endCursor
-    }
-    nodes {
-      ... on Repository {
-        nameWithOwner
-        description
-        url
-        stargazerCount
-        primaryLanguage {
-          name
-        }
-      }
-    }
-  }
-}
+ query FindNestJSMicroservices($queryString: String!, $cursor: String) {
+   search(query: $queryString, type: REPOSITORY, first: 20, after: $cursor) {
+     repositoryCount
+     pageInfo {
+       hasNextPage
+       endCursor
+     }
+     nodes {
+       ... on Repository {
+         nameWithOwner
+         description
+         url
+         stargazerCount
+         primaryLanguage {
+           name
+         }
+       }
+     }
+   }
+ }
 """
 
 # Template for searching inside code (package.json and imports)
@@ -58,21 +58,36 @@ query FindNestJSImports($queryString: String!, $cursor: String) {
 }
 """
 
-# Targeting the specific package inside the code + the communication protocols
+# Targeting NestJS applications that use axios for HTTP/REST communication
 SEARCH_QUERIES = [
-    # 1. Deep Search: find "@nestjs/microservices" inside package.json with the protocols
+    # 1. Find NestJS projects that list axios as a dependency in package.json
     {
-        "query": '"@nestjs/microservices" (axios OR grpc OR redis) path:package.json',
+        "query": '"@nestjs/core" axios path:package.json',
         "type": "CODE",
     },
-    # 2. Deep Search: find "@nestjs/microservices" imports in TypeScript files
+    # 2. Find NestJS microservices projects that list axios as a dependency
     {
-        "query": 'import "@nestjs/microservices" (axios OR grpc OR redis) language:TypeScript',
+        "query": '"@nestjs/microservices" axios path:package.json',
         "type": "CODE",
     },
-    # 3. Fallback: find repositories tagged or described with these terms
+    # 3. Find TypeScript files that import both @nestjs and axios
     {
-        "query": 'nestjs microservice (axios OR grpc OR redis) stars:>=5',
+        "query": '"@nestjs/common" "from \"axios\"" language:TypeScript',
+        "type": "CODE",
+    },
+    # 4. Find TypeScript files with axios HTTP method calls inside NestJS services
+    {
+        "query": '"@Injectable" (axios.get OR axios.post OR axios.put OR axios.delete OR axios.patch) language:TypeScript',
+        "type": "CODE",
+    },
+    # 5. Find TypeScript files using axios.create (custom instances) in NestJS
+    {
+        "query": '"@nestjs/common" axios.create language:TypeScript',
+        "type": "CODE",
+    },
+    # 6. Fallback: find repositories described as NestJS microservices using axios/REST
+    {
+        "query": 'nestjs microservice (axios OR "http client" OR rest) stars:>=5',
         "type": "REPOSITORY",
     },
 ]

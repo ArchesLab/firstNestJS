@@ -1,0 +1,46 @@
+---
+sourceLocationPrefix: C:\Users\mary\Clubs\Research\simple-app
+baselineLinesOfCode: 2015
+unicodeNewlines: true
+columnKind: utf16
+primaryLanguage: javascript
+inProgress:
+  primaryLanguage: javascript
+  installedExtractors:
+    actions:
+     - C:/Users/mary/Clubs/Research/simple-app/codeql/actions
+    cpp:
+     - C:/Users/mary/Clubs/Research/simple-app/codeql/cpp
+    csharp:
+     - C:/Users/mary/Clubs/Research/simple-app/codeql/csharp
+    csv:
+     - C:/Users/mary/Clubs/Research/simple-app/codeql/csv
+    go:
+     - C:/Users/mary/Clubs/Research/simple-app/codeql/go
+    html:
+     - C:/Users/mary/Clubs/Research/simple-app/codeql/html
+    java:
+     - C:/Users/mary/Clubs/Research/simple-app/codeql/java
+    javascript:
+     - C:/Users/mary/Clubs/Research/simple-app/codeql/javascript
+    properties:
+     - C:/Users/mary/Clubs/Research/simple-app/codeql/properties
+    python:
+     - C:/Users/mary/Clubs/Research/simple-app/codeql/python
+    ruby:
+     - C:/Users/mary/Clubs/Research/simple-app/codeql/ruby
+    rust:
+     - C:/Users/mary/Clubs/Research/simple-app/codeql/rust
+    swift:
+     - C:/Users/mary/Clubs/Research/simple-app/codeql/swift
+    xml:
+     - C:/Users/mary/Clubs/Research/simple-app/codeql/xml
+    yaml:
+     - C:/Users/mary/Clubs/Research/simple-app/codeql/yaml
+creationMetadata:
+  sha: 5816faa156d374ab18f9753f9d4aef9f806cbad4
+  cliVersion: 2.23.9
+  creationTime: 2026-05-22T10:55:20.397600200Z
+overlayBaseDatabase: false
+overlayDatabase: false
+finalised: false

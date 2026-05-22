@@ -6,11 +6,11 @@ skinparam nodesep 20
 skinparam ranksep 150
 
 together {
-  component [auth] as auth
+  component [api] as api
   component [redis] as redis
 }
 
-auth -[hidden]r- redis
+api -[hidden]r- redis
 
 ' --- Port definitions ---
 
@@ -20,8 +20,5 @@ component redis {
 
 ' --- Connections ---
 
-auth -[dotted]-> redis_commands : "DEL :{uuid}"
-auth -[dotted]-> redis_commands : "GET :{userId}"
-auth -[dotted]-> redis_commands : "GET :{userId}"
-auth -[dotted]-> redis_commands : "GET :{uuid}"
+api -[dotted]-> redis_commands : "Redis 74 key pattern(s); commands: DEL, EXEC, EXISTS, GET, INCR, KEYS, MULTI, SET, SETEX, ZADD, ZRANGEBYSCORE, ZSCORE"
 @enduml

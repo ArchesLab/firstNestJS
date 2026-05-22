@@ -21,9 +21,12 @@ USAGE:
 from __future__ import annotations
 
 import argparse
+from collections import defaultdict
+from dataclasses import replace
 from pathlib import Path
 
 from . import normalizers, parser, plantuml_renderer
+from .models import ConnectorRecord
 
 
 # Default locations match the legacy converter so downstream scripts
@@ -57,11 +60,20 @@ def _build_arg_parser() -> argparse.ArgumentParser:
             "portin/portout and edges connect portout to portin."
         ),
     )
+    p.add_argument(
+        "--service-view", action="store_true", default=False,
+        help=(
+            "Aggregate connector facts by caller, target, and protocol so "
+            "the output shows service-to-service communication rather than "
+            "one edge per recovered endpoint/key."
+        ),
+    )
     return p
 
 
 def run(input_path: Path, output_path: Path,
-        connect_ports: bool = True) -> None:
+        connect_ports: bool = True,
+        service_view: bool = False) -> None:
     """Execute the full pipeline - the only non-trivial function in this
     file.
 
@@ -79,6 +91,9 @@ def run(input_path: Path, output_path: Path,
         return
 
     cleaned = [normalizers.normalise(r) for r in raw_records]
+    if service_view:
+        cleaned = _aggregate_service_view(cleaned)
+
     plantuml = plantuml_renderer.render(cleaned, connect_ports=connect_ports)
 
     output_path.write_text(plantuml, encoding="utf-8")
@@ -88,10 +103,52 @@ def run(input_path: Path, output_path: Path,
     )
 
 
+def _aggregate_service_view(records: list[ConnectorRecord]) -> list[ConnectorRecord]:
+    """Collapse endpoint-level facts into service-level communication edges."""
+    grouped: dict[tuple[str, str, str], list[ConnectorRecord]] = defaultdict(list)
+    for record in records:
+        grouped[(record.protocol, record.caller_service, record.target_service)].append(record)
+
+    aggregated: list[ConnectorRecord] = []
+    for (protocol, caller, target), group in grouped.items():
+        operations = sorted({r.operation.upper() for r in group})
+        endpoint_count = len({r.endpoint for r in group})
+        config_keys = sorted({r.config_key for r in group if r.config_key})
+        first = sorted(group, key=lambda r: (r.operation, r.endpoint, r.location))[0]
+
+        if protocol == "redis":
+            operation = "Redis"
+            endpoint = f"{endpoint_count} key pattern(s); commands: {', '.join(operations)}"
+        elif protocol == "grpc":
+            operation = ", ".join(operations)
+            endpoint = f"{endpoint_count} RPC endpoint(s)"
+        elif protocol == "rest":
+            operation = ", ".join(operations)
+            endpoint = f"{endpoint_count} HTTP endpoint(s)"
+        else:
+            operation = protocol.upper()
+            endpoint = f"{endpoint_count} endpoint(s); operations: {', '.join(operations)}"
+
+        aggregated.append(
+            replace(
+                first,
+                operation=operation,
+                endpoint=endpoint,
+                config_key=", ".join(config_keys),
+            )
+        )
+
+    return sorted(
+        aggregated,
+        key=lambda r: (r.protocol, r.caller_service, r.target_service, r.endpoint),
+    )
+
+
 def main() -> None:
     args = _build_arg_parser().parse_args()
     run(args.input, args.output,
-        connect_ports=not args.no_connect_ports)
+        connect_ports=not args.no_connect_ports,
+        service_view=args.service_view)
 
 
 if __name__ == "__main__":

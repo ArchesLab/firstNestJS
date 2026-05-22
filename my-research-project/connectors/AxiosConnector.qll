@@ -15,7 +15,7 @@
  *
  * SCOPE:
  *   Call-return only. Axios does not have a pub-sub API so every method we
- *   match is implicitly request/response.
+ *   match is implicitly request/response.res
  */
 
 import javascript

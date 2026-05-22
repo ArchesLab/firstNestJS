@@ -4,10 +4,12 @@ dist/
 codeql/
 my-db/
 nestjs-db/
+dbs/chunyu-cms-db
 my-research-project/tests/test/test.testproj
 my-research-project/tests/function/function.testproj
 my-research-project/evaluator-logs
-
+repos/
+dbs/
 # Python bytecode cache
 __pycache__/
 *.py[cod]

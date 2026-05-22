@@ -11,6 +11,7 @@
  *     - It came from `ClientGrpc.getService<T>("UserService")` (NestJS)
  *     - Or from `new proto.UserService(addr, creds)` (@grpc/grpc-js)
  *     - Or from `createClient(UserServiceDefinition, channel)` (nice-grpc)
+ *     - Or it is a NestJS `ClientProxy.send(pattern, payload)` call.
  *
  *   Detecting gRPC therefore means tracking the stub VARIABLE back to its
  *   definition, then emitting any method call on that variable as a
@@ -113,6 +114,53 @@ private predicate isGrpcInfrastructureMethod(string name) {
 }
 
 /**
+ * Infers a service name from common NestJS ClientProxy field names.
+ *
+ * Examples:
+ *   this.tokenServiceClient      -> token
+ *   this.permissionServiceClient -> permission
+ *   this.mailerClient            -> mailer
+ */
+bindingset[rawName]
+private predicate serviceNameFromClientName(string rawName, string serviceName) {
+  exists(string lowerName |
+    lowerName = rawName.toLowerCase() and
+    (
+      serviceName = lowerName.regexpCapture("(.*)serviceclient$", 1)
+      or
+      not lowerName.regexpMatch(".*serviceclient$") and
+      serviceName = lowerName.regexpCapture("(.*)client$", 1)
+    )
+  )
+}
+
+/**
+ * A NestJS ClientProxy call, e.g.
+ *   this.userServiceClient.send('user_get_by_id', id)
+ *
+ * Nest's TCP/RMQ/etc. ClientProxy API is still request/response RPC from
+ * the caller's perspective. We fold it into this connector so the unified
+ * architecture output can show the same service-call graph even when the
+ * project does not use generated gRPC stubs.
+ */
+private predicate isNestClientProxySend(MethodCallExpr call, string serviceName) {
+  fileUsesGrpc(call.getFile()) and
+  call.getMethodName() = "send" and
+  call.getArgument(0) instanceof StringLiteral and
+  (
+    exists(PropAccess receiver |
+      call.getReceiver() = receiver and
+      serviceNameFromClientName(receiver.getPropertyName(), serviceName)
+    )
+    or
+    exists(Identifier receiver |
+      call.getReceiver() = receiver and
+      serviceNameFromClientName(receiver.getName(), serviceName)
+    )
+  )
+}
+
+/**
  * A unary gRPC call expressed as `stub.method(request)`.
  *
  * WHY WE ASSUME UNARY:
@@ -129,16 +177,26 @@ class GrpcCall extends Connector, MethodCallExpr {
   string serviceName;
 
   GrpcCall() {
-    exists(Variable stub |
-      isGrpcStubVariable(stub, serviceName) and
-      this.getReceiver() = stub.getAnAccess() and
-      not isGrpcInfrastructureMethod(this.getMethodName())
+    (
+      exists(Variable stub |
+        isGrpcStubVariable(stub, serviceName) and
+        this.getReceiver() = stub.getAnAccess() and
+        not isGrpcInfrastructureMethod(this.getMethodName())
+      )
+      or
+      isNestClientProxySend(this, serviceName)
     )
   }
 
   override string getProtocol() { result = "grpc" }
 
-  override string getOperation() { result = this.getMethodName() }
+  override string getOperation() {
+    isNestClientProxySend(this, _) and
+    result = this.getArgument(0).(StringLiteral).getValue()
+    or
+    not isNestClientProxySend(this, _) and
+    result = this.getMethodName()
+  }
 
   override string getCallerService() { result = callerServiceForExpr(this) }
 
@@ -171,7 +229,13 @@ class GrpcCall extends Connector, MethodCallExpr {
    * request objects with a `.path` field), we append a hint; otherwise the
    * endpoint is just `/<ServiceName>/<methodName>`.
    */
-  override string getEndpoint() { result = "/" + serviceName + "/" + this.getMethodName() }
+  override string getEndpoint() {
+    isNestClientProxySend(this, _) and
+    result = "/" + serviceName + "/" + this.getArgument(0).(StringLiteral).getValue()
+    or
+    not isNestClientProxySend(this, _) and
+    result = "/" + serviceName + "/" + this.getMethodName()
+  }
 
   /**
    * Config key is captured when a `configService.get(...)` call appears in

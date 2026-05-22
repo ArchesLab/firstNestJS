@@ -1,15 +1,16 @@
 """
-parser.py - reads CodeQL's pipe-separated output into `ConnectorRecord`s.
+parser.py - reads CodeQL's decoded table output into `ConnectorRecord`s.
 
 WHY A DEDICATED PARSER MODULE:
   The old converter parsed and rendered in the same function. Splitting
   parsing out means:
-    - We can swap in a different CodeQL output format (JSON, CSV, BQRS)
-      by replacing this one file, not rewriting the pipeline.
+    - We can handle CodeQL CSV and the older pipe-separated output here,
+      not in every downstream stage.
     - The parser has no opinions about WHAT to do with records - it just
       shepherds them from text into typed objects.
 """
 
+import csv
 from pathlib import Path
 from typing import List
 
@@ -51,15 +52,23 @@ def _is_header_or_separator(line: str) -> bool:
     return False
 
 
+def _split_row(line: str) -> list[str]:
+    """Split either CodeQL CSV output or the legacy pipe-separated format."""
+    stripped = line.rstrip("\n")
+    if "," in stripped:
+        return next(csv.reader([stripped]))
+    return [p.strip() for p in stripped.split("|")]
+
+
 def parse_line(line: str) -> ConnectorRecord | None:
-    """Turn one pipe-separated row into a `ConnectorRecord`, or `None`
+    """Turn one decoded row into a `ConnectorRecord`, or `None`
     when the row is malformed or uses an unknown protocol."""
     def strip_quotes(s):
         s = s.strip()
         if s.startswith('"') and s.endswith('"'):
             return s[1:-1]
         return s
-    parts = [strip_quotes(p) for p in line.split(",")]
+    parts = [strip_quotes(p) for p in _split_row(line)]
     if len(parts) < len(EXPECTED_COLUMNS):
         return None
 
