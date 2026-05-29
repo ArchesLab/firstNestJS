@@ -142,4 +142,4 @@ if __name__ == "__main__":
     output_path = os.path.join(os.path.dirname(__file__), 'final_result.txt')
     
     # Run the processor
-    process_codeql_csv(r'C:\Users\mary\Clubs\Research\simple-app\my-research-project\codeql_results.csv', master_env, output_path)
+    process_codeql_csv(r'C:\Users\mary\Clubs\Research\simple-app\results\codeql-results.csv', master_env, output_path)

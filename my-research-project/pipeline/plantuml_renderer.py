@@ -26,13 +26,14 @@ from typing import Dict, Iterable, List, Set
 from .models import ConnectorRecord
 
 
-# The six workspace services from the monorepo. We keep the order stable
-# so diffs between runs stay minimal. Static list mirrors the
-# `knownService/1` predicate in ServiceIdentification.qll - a change here
-# should mirror a change there.
-KNOWN_SERVICES: List[str] = [
-    "gateway", "auth", "users", "clubs", "events", "notifications",
-]
+# ---------------------------------------------------------------------------
+# Service name discovery
+# ---------------------------------------------------------------------------
+# KNOWN_SERVICES has been removed — the renderer now derives all component
+# names directly from the caller_service / target_service fields in the
+# ConnectorRecords.  This makes the pipeline reusable across repositories
+# without editing a hard-coded list.
+# ---------------------------------------------------------------------------
 
 # Visual vocabulary per protocol. Edges use PlantUML arrow modifiers:
 #   -->   : solid (REST - the default, most common)
@@ -48,23 +49,18 @@ EDGE_STYLE: Dict[str, str] = {
 
 
 def _collect_components(records: Iterable[ConnectorRecord]) -> List[str]:
-    """Assemble the full component list: workspace services + extras
-    introduced by non-REST protocols (`redis`, `grpc:Foo`, ...).
+    """Assemble the full component list purely from connector records.
 
-    WHY COMPONENTS COME FROM DATA:
-      Hard-coding only the six microservice folders (as the old
-      converter did) hides the existence of Redis / gRPC servers in the
-      diagram. Pulling components from the recovered records ensures the
-      architecture view matches what the code actually does.
+    Every distinct caller_service and target_service (except the sentinel
+    'unknown-service') becomes a component.  Sorted alphabetically so diffs
+    between runs stay minimal regardless of which repo is analysed.
     """
-    extras: Set[str] = set()
+    components: Set[str] = set()
     for r in records:
         for endpoint in (r.caller_service, r.target_service):
-            if endpoint and endpoint not in KNOWN_SERVICES \
-                    and endpoint != "unknown-service":
-                extras.add(endpoint)
-    # Stable order: known services first, extras alphabetical after.
-    return KNOWN_SERVICES + sorted(extras)
+            if endpoint and endpoint != "unknown-service":
+                components.add(endpoint)
+    return sorted(components)
 
 
 def _port_label(record: ConnectorRecord) -> str:
@@ -104,8 +100,26 @@ def _edge_label(record: ConnectorRecord) -> str:
     return record.operation
 
 
-def render(records: List[ConnectorRecord]) -> str:
-    """Produce a PlantUML document from a list of connector records."""
+def render(records: List[ConnectorRecord],
+           connect_ports: bool = True) -> str:
+    """Produce a PlantUML document from a list of connector records.
+
+    Args:
+        records: Normalised connector records.
+        connect_ports: If True (default), combine ports that share the
+            same label on each component and draw edges from the caller
+            component directly to the shared portin.  If False, show
+            every port individually with separate portin/portout per
+            record and draw edges from caller portout to target portin.
+    """
+    if connect_ports:
+        return _render_combined(records)
+    return _render_individual(records)
+
+
+def _render_combined(records: List[ConnectorRecord]) -> str:
+    """Combined-ports mode: deduplicate port labels, edges from
+    component → shared portin."""
     components = _collect_components(records)
 
     # Port slot per component - deduplicated so we don't emit repeat
@@ -169,6 +183,88 @@ def render(records: List[ConnectorRecord]) -> str:
     return "\n".join(lines) + "\n"
 
 
+def _render_individual(records: List[ConnectorRecord]) -> str:
+    """Individual-ports mode: every record gets its own portin and
+    portout; edges go from caller portout → target portin.
+
+    Port labels use the full endpoint path for maximum architectural
+    accuracy.  No layout hints are emitted so PlantUML's engine can
+    calculate the shortest path between components.
+    """
+    components = _collect_components(records)
+    prefix_map = _compute_short_prefixes(components)
+
+    # Per-component running counters for portin / portout.
+    portin_counters: Dict[str, int] = defaultdict(int)
+    portout_counters: Dict[str, int] = defaultdict(int)
+
+    # Per-component ordered lists of (label, alias) for ports.
+    component_portins: Dict[str, List[tuple]] = defaultdict(list)
+    component_portouts: Dict[str, List[tuple]] = defaultdict(list)
+
+    # For each valid record, store the assigned port aliases so we can
+    # emit the right edge later.
+    record_ports: List[tuple] = []   # (portout_alias, portin_alias, record)
+
+    for r in sorted(records, key=_record_sort_key):
+        if r.caller_service not in components:
+            continue
+        if r.target_service not in components:
+            continue
+
+        # Assign a portout on the caller.
+        portout_counters[r.caller_service] += 1
+        out_idx = portout_counters[r.caller_service]
+        caller_pfx = _short_prefix(r.caller_service, prefix_map)
+        portout_alias = f"{caller_pfx}_out{out_idx}"
+        portout_label = f"out{out_idx}"
+        component_portouts[r.caller_service].append(
+            (portout_label, portout_alias)
+        )
+
+        # Assign a portin on the target — full endpoint path.
+        portin_counters[r.target_service] += 1
+        in_idx = portin_counters[r.target_service]
+        target_pfx = _short_prefix(r.target_service, prefix_map)
+        portin_alias = f"{target_pfx}_p{in_idx}"
+        portin_label = r.endpoint
+        component_portins[r.target_service].append(
+            (portin_label, portin_alias)
+        )
+
+        record_ports.append((portout_alias, portin_alias, r))
+
+    lines: List[str] = []
+    lines.append("@startuml")
+
+    # Emit component blocks with their ports.  No together/hidden
+    # edges — let PlantUML's auto-layout determine placement.
+    for comp in components:
+        portins = component_portins.get(comp, [])
+        portouts = component_portouts.get(comp, [])
+        if not portins and not portouts:
+            continue
+        comp_name = comp.title()
+        lines.append(f"component {comp_name} {{")
+        for label, alias in portins:
+            lines.append(f'  portin "{label}" as {alias}')
+        for label, alias in portouts:
+            lines.append(f'  portout "{label}" as {alias}')
+        lines.append("}")
+        lines.append("")
+
+    # Emit connections from portout → portin.
+    for portout_alias, portin_alias, r in record_ports:
+        arrow = EDGE_STYLE.get(r.protocol, "-->")
+        lines.append(
+            f'{portout_alias} {arrow} {portin_alias} '
+            f': {r.operation.upper()}'
+        )
+
+    lines.append("@enduml")
+    return "\n".join(lines) + "\n"
+
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -178,6 +274,44 @@ def _alias(component: str) -> str:
     sanitise. This is the one piece of glue that lets `grpc:UserService`
     and `unknown-service` still appear in diagrams."""
     return component.replace(":", "_").replace("-", "_")
+
+
+def _compute_short_prefixes(components: List[str]) -> Dict[str, str]:
+    """Return a map component -> unique short prefix for port aliases.
+
+    We start with the first character and lengthen the prefix until every
+    component has a distinct value.  This avoids collisions when two
+    services share an initial letter (e.g. 'users' and 'uploads').
+    """
+    aliases = [_alias(c) for c in components]
+    prefix_map: Dict[str, str] = {}
+    length = 1
+    while True:
+        collisions = False
+        seen: Set[str] = set()
+        for comp, alias in zip(components, aliases):
+            pfx = alias[:length]
+            if pfx in seen:
+                collisions = True
+                break
+            seen.add(pfx)
+        if not collisions:
+            # All prefixes are unique at this length
+            for comp, alias in zip(components, aliases):
+                prefix_map[comp] = alias[:length]
+            break
+        length += 1
+        if length > max(len(a) for a in aliases):
+            # Fallback: use full alias (should never happen)
+            for comp, alias in zip(components, aliases):
+                prefix_map[comp] = alias
+            break
+    return prefix_map
+
+
+def _short_prefix(component: str, prefix_map: Dict[str, str]) -> str:
+    """Look up the collision-aware short prefix for a component."""
+    return prefix_map.get(component, _alias(component))
 
 
 def _port_alias(component: str, port: str) -> str:

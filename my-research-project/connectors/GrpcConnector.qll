@@ -11,6 +11,7 @@
  *     - It came from `ClientGrpc.getService<T>("UserService")` (NestJS)
  *     - Or from `new proto.UserService(addr, creds)` (@grpc/grpc-js)
  *     - Or from `createClient(UserServiceDefinition, channel)` (nice-grpc)
+ *     - Or it is a NestJS `ClientProxy.send(pattern, payload)` call.
  *
  *   Detecting gRPC therefore means tracking the stub VARIABLE back to its
  *   definition, then emitting any method call on that variable as a
@@ -113,6 +114,58 @@ private predicate isGrpcInfrastructureMethod(string name) {
 }
 
 /**
+ * Infers an RPC surface name from common NestJS ClientProxy field names.
+ *
+ * Examples:
+ *   this.tokenServiceClient      -> token
+ *   this.permissionServiceClient -> permission
+ *   this.mailerClient            -> mailer
+ *
+ * IMPORTANT: this is not necessarily the deployed component.  It is the
+ * endpoint namespace used by the RPC client.  `getTargetService()` maps it
+ * through `canonicalServiceName(...)` so names like `AuthService` become the
+ * real `auth-service` component when that folder exists.
+ */
+bindingset[rawName]
+private predicate rpcSurfaceNameFromClientName(string rawName, string serviceName) {
+  exists(string lowerName |
+    lowerName = rawName.toLowerCase() and
+    (
+      serviceName = lowerName.regexpCapture("(.*)serviceclient$", 1)
+      or
+      not lowerName.regexpMatch(".*serviceclient$") and
+      serviceName = lowerName.regexpCapture("(.*)client$", 1)
+    )
+  )
+}
+
+/**
+ * A NestJS ClientProxy call, e.g.
+ *   this.userServiceClient.send('user_get_by_id', id)
+ *
+ * Nest's TCP/RMQ/etc. ClientProxy API is still request/response RPC from
+ * the caller's perspective. We fold it into this connector so the unified
+ * architecture output can show the same service-call graph even when the
+ * project does not use generated gRPC stubs.
+ */
+private predicate isNestClientProxySend(MethodCallExpr call, string serviceName) {
+  fileUsesGrpc(call.getFile()) and
+  call.getMethodName() = "send" and
+  call.getArgument(0) instanceof StringLiteral and
+  (
+    exists(PropAccess receiver |
+      call.getReceiver() = receiver and
+      rpcSurfaceNameFromClientName(receiver.getPropertyName(), serviceName)
+    )
+    or
+    exists(Identifier receiver |
+      call.getReceiver() = receiver and
+      rpcSurfaceNameFromClientName(receiver.getName(), serviceName)
+    )
+  )
+}
+
+/**
  * A unary gRPC call expressed as `stub.method(request)`.
  *
  * WHY WE ASSUME UNARY:
@@ -129,37 +182,43 @@ class GrpcCall extends Connector, MethodCallExpr {
   string serviceName;
 
   GrpcCall() {
-    exists(Variable stub |
-      isGrpcStubVariable(stub, serviceName) and
-      this.getReceiver() = stub.getAnAccess() and
-      not isGrpcInfrastructureMethod(this.getMethodName())
+    (
+      exists(Variable stub |
+        isGrpcStubVariable(stub, serviceName) and
+        this.getReceiver() = stub.getAnAccess() and
+        not isGrpcInfrastructureMethod(this.getMethodName())
+      )
+      or
+      isNestClientProxySend(this, serviceName)
     )
   }
 
   override string getProtocol() { result = "grpc" }
 
-  override string getOperation() { result = this.getMethodName() }
+  override string getOperation() {
+    isNestClientProxySend(this, _) and
+    result = this.getArgument(0).(StringLiteral).getValue()
+    or
+    not isNestClientProxySend(this, _) and
+    result = this.getMethodName()
+  }
 
   override string getCallerService() { result = callerServiceForExpr(this) }
 
   /**
-   * For gRPC, the target is the proto service name (e.g. `UserService`).
-   * We lower-case it and strip a trailing `Service` / `Grpc` suffix so it
-   * matches the microservice folder name when the convention holds
-   * (e.g. `UserService` -> `users` does NOT happen automatically; authors
-   * should document their mapping). When the heuristic can't normalise,
-   * we emit the raw proto name prefixed with `grpc:` to make it obvious
-   * this is a gRPC target, not a REST service folder.
+   * For gRPC, the endpoint namespace is usually a proto service name
+   * (`AuthService`) or a ClientProxy topic prefix (`auth`).  That name is
+   * not automatically a deployed component.  We map it to a recovered
+   * project root first, so a repo with `auth-service/` and `post-service/`
+   * renders those two components and keeps `ValidateToken` as the endpoint.
+   * When no deployed service matches, we emit `grpc:<surface>` to make the
+   * unresolved proto surface explicit instead of pretending it is a service.
    */
   override string getTargetService() {
-    exists(string normalised |
-      normalised = serviceName.toLowerCase().regexpReplaceAll("(service|grpc)$", "") |
-      (
-        knownService(normalised) and result = normalised
-        or
-        not knownService(normalised) and result = "grpc:" + serviceName
-      )
-    )
+    canonicalServiceName(serviceName) = result
+    or
+    not exists(string deployed | canonicalServiceName(serviceName) = deployed) and
+    result = "grpc:" + serviceName
   }
 
   /**
@@ -171,7 +230,13 @@ class GrpcCall extends Connector, MethodCallExpr {
    * request objects with a `.path` field), we append a hint; otherwise the
    * endpoint is just `/<ServiceName>/<methodName>`.
    */
-  override string getEndpoint() { result = "/" + serviceName + "/" + this.getMethodName() }
+  override string getEndpoint() {
+    isNestClientProxySend(this, _) and
+    result = "/" + serviceName + "/" + this.getArgument(0).(StringLiteral).getValue()
+    or
+    not isNestClientProxySend(this, _) and
+    result = "/" + serviceName + "/" + this.getMethodName()
+  }
 
   /**
    * Config key is captured when a `configService.get(...)` call appears in

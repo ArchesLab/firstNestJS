@@ -3,9 +3,19 @@ dist/
 .env
 codeql/
 my-db/
+nestjs-db/
+dbs/chunyu-cms-db
 my-research-project/tests/test/test.testproj
 my-research-project/tests/function/function.testproj
 my-research-project/evaluator-logs
+repos/
+dbs/
+diagram.puml
+
+# Generated query/script outputs
+*.bqrs
+*.csv
+results/
 
 # Python bytecode cache
 __pycache__/
