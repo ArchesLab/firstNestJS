@@ -52,8 +52,8 @@ def resolve_environment_mapping(csv_input, env_path):
 # 1. The root directory of your project
 BASE_PATH = r"C:\Users\mary\Clubs\Research\simple-app"
 
-# 2. Points to: C:\Users\mary\Clubs\Research\simple-app\my-research-project\codeql_results.csv
-CSV_FILE = os.path.join(BASE_PATH, "my-research-project", "codeql_results.csv")
+# 2. Points to: C:\Users\mary\Clubs\Research\simple-app\results\codeql-results.csv
+CSV_FILE = os.path.join(BASE_PATH, "results", "codeql-results.csv")
 
 # 3. Points to: C:\Users\mary\Clubs\Research\simple-app\events\.env
 # We pass "events" as a folder name, then ".env" as the filename

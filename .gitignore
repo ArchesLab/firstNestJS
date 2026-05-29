@@ -10,6 +10,13 @@ my-research-project/tests/function/function.testproj
 my-research-project/evaluator-logs
 repos/
 dbs/
+diagram.puml
+
+# Generated query/script outputs
+*.bqrs
+*.csv
+results/
+
 # Python bytecode cache
 __pycache__/
 *.py[cod]

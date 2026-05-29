@@ -6,11 +6,11 @@ skinparam nodesep 20
 skinparam ranksep 150
 
 together {
-  component [auth] as auth
+  component [nest-server] as nest_server
   component [redis] as redis
 }
 
-auth -[hidden]r- redis
+nest_server -[hidden]r- redis
 
 ' --- Port definitions ---
 
@@ -20,8 +20,5 @@ component redis {
 
 ' --- Connections ---
 
-auth -[dotted]-> redis_commands : "DEL :{uuid}"
-auth -[dotted]-> redis_commands : "GET :{userId}"
-auth -[dotted]-> redis_commands : "GET :{userId}"
-auth -[dotted]-> redis_commands : "GET :{uuid}"
+nest_server -[dotted]-> redis_commands : "Redis 28 key pattern(s); commands: DEL, GET, KEYS, SET"
 @enduml

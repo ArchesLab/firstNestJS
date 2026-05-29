@@ -10,18 +10,20 @@ from __future__ import annotations
 
 import json
 import os
+import csv
 import sys
 import time
 import urllib.error
 import urllib.parse
 import urllib.request
+from pathlib import Path
 from typing import Any
 
 
 GITHUB_CODE_SEARCH_URL = "https://api.github.com/search/code"
 GITHUB_REPOSITORY_SEARCH_URL = "https://api.github.com/search/repositories"
 GITHUB_REPOS_URL = "https://api.github.com/repos"
-OUTPUT_FILE = "repositories.json"
+OUTPUT_FILE = Path("results") / "repositories.csv"
 MIN_STARS = 5
 PER_PAGE = 50
 MAX_CODE_PAGES = 1
@@ -350,7 +352,7 @@ def project_exclusion_reason(repo: dict[str, Any]) -> str | None:
 
 
 def normalize_repository(repo: dict[str, Any]) -> dict[str, Any]:
-    """Return the JSON shape saved to disk."""
+    """Return the row shape saved to disk."""
     owner, name = repo["full_name"].split("/", 1)
     evidence = set(repo.get("matchedEvidence", set()))
     return {
@@ -491,8 +493,32 @@ def main() -> None:
         )
         sys.exit(1)
 
-    with open(OUTPUT_FILE, "w", encoding="utf-8") as file:
-        json.dump(repositories, file, indent=2)
+    for repo in repositories:
+        for key in ("topics", "matchedEvidence", "matchedPaths", "matchedQueries"):
+            repo[key] = ";".join(repo[key])
+
+    OUTPUT_FILE.parent.mkdir(parents=True, exist_ok=True)
+    with OUTPUT_FILE.open("w", newline="", encoding="utf-8") as file:
+        fieldnames = [
+            "name",
+            "owner",
+            "description",
+            "url",
+            "primaryLanguage",
+            "stargazerCount",
+            "forkCount",
+            "isArchived",
+            "isFork",
+            "pushedAt",
+            "evidenceScore",
+            "topics",
+            "matchedEvidence",
+            "matchedPaths",
+            "matchedQueries",
+        ]
+        writer = csv.DictWriter(file, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(repositories)
 
     print(f"\nSaved {len(repositories)} repositories to {OUTPUT_FILE}")
 

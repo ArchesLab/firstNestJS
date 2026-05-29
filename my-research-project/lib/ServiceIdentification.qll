@@ -110,6 +110,31 @@ predicate knownService(string name) {
   exists(File f | singleRootNestServiceFromPath(f.getRelativePath(), name))
 }
 
+/**
+ * Maps a protocol/interface/domain-ish name to the deployed service folder.
+ *
+ * gRPC code often names the proto surface `AuthService` while the actual
+ * deployable unit is `auth-service/`.  Rendering the proto surface as a
+ * component invents an extra service.  This predicate keeps component
+ * identity tied to recovered project roots, while callers can still use the
+ * proto/RPC name as the endpoint label.
+ */
+bindingset[rawName]
+string canonicalServiceName(string rawName) {
+  exists(string lowerName, string baseName, string serviceFolder |
+    lowerName = rawName.toLowerCase().regexpReplaceAll("_", "-") and
+    baseName = lowerName.regexpReplaceAll("(-?service|-?grpc)$", "") and
+    knownService(serviceFolder) and
+    (
+      serviceFolder = lowerName and result = serviceFolder
+      or
+      serviceFolder = baseName and result = serviceFolder
+      or
+      serviceFolder = baseName + "-service" and result = serviceFolder
+    )
+  )
+}
+
 /** True if `path` lives inside the workspace folder for `service`. */
 bindingset[path]
 private predicate pathBelongsToService(string path, string service) {

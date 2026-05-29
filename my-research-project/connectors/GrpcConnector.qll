@@ -114,15 +114,20 @@ private predicate isGrpcInfrastructureMethod(string name) {
 }
 
 /**
- * Infers a service name from common NestJS ClientProxy field names.
+ * Infers an RPC surface name from common NestJS ClientProxy field names.
  *
  * Examples:
  *   this.tokenServiceClient      -> token
  *   this.permissionServiceClient -> permission
  *   this.mailerClient            -> mailer
+ *
+ * IMPORTANT: this is not necessarily the deployed component.  It is the
+ * endpoint namespace used by the RPC client.  `getTargetService()` maps it
+ * through `canonicalServiceName(...)` so names like `AuthService` become the
+ * real `auth-service` component when that folder exists.
  */
 bindingset[rawName]
-private predicate serviceNameFromClientName(string rawName, string serviceName) {
+private predicate rpcSurfaceNameFromClientName(string rawName, string serviceName) {
   exists(string lowerName |
     lowerName = rawName.toLowerCase() and
     (
@@ -150,12 +155,12 @@ private predicate isNestClientProxySend(MethodCallExpr call, string serviceName)
   (
     exists(PropAccess receiver |
       call.getReceiver() = receiver and
-      serviceNameFromClientName(receiver.getPropertyName(), serviceName)
+      rpcSurfaceNameFromClientName(receiver.getPropertyName(), serviceName)
     )
     or
     exists(Identifier receiver |
       call.getReceiver() = receiver and
-      serviceNameFromClientName(receiver.getName(), serviceName)
+      rpcSurfaceNameFromClientName(receiver.getName(), serviceName)
     )
   )
 }
@@ -201,23 +206,19 @@ class GrpcCall extends Connector, MethodCallExpr {
   override string getCallerService() { result = callerServiceForExpr(this) }
 
   /**
-   * For gRPC, the target is the proto service name (e.g. `UserService`).
-   * We lower-case it and strip a trailing `Service` / `Grpc` suffix so it
-   * matches the microservice folder name when the convention holds
-   * (e.g. `UserService` -> `users` does NOT happen automatically; authors
-   * should document their mapping). When the heuristic can't normalise,
-   * we emit the raw proto name prefixed with `grpc:` to make it obvious
-   * this is a gRPC target, not a REST service folder.
+   * For gRPC, the endpoint namespace is usually a proto service name
+   * (`AuthService`) or a ClientProxy topic prefix (`auth`).  That name is
+   * not automatically a deployed component.  We map it to a recovered
+   * project root first, so a repo with `auth-service/` and `post-service/`
+   * renders those two components and keeps `ValidateToken` as the endpoint.
+   * When no deployed service matches, we emit `grpc:<surface>` to make the
+   * unresolved proto surface explicit instead of pretending it is a service.
    */
   override string getTargetService() {
-    exists(string normalised |
-      normalised = serviceName.toLowerCase().regexpReplaceAll("(service|grpc)$", "") |
-      (
-        knownService(normalised) and result = normalised
-        or
-        not knownService(normalised) and result = "grpc:" + serviceName
-      )
-    )
+    canonicalServiceName(serviceName) = result
+    or
+    not exists(string deployed | canonicalServiceName(serviceName) = deployed) and
+    result = "grpc:" + serviceName
   }
 
   /**

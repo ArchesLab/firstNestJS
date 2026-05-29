@@ -2,11 +2,14 @@
 """Query GitHub's GraphQL API to find NestJS microservice repositories with specific protocols."""
 
 import json
+import csv
 import os
 import sys
 import urllib.request
+from pathlib import Path
 
 GITHUB_GRAPHQL_URL = "https://api.github.com/graphql"
+OUTPUT_FILE = Path("results") / "nestjs-microservices.csv"
 
 # Template for searching repository metadata
 REPO_QUERY = """
@@ -177,10 +180,22 @@ def main():
         print(f"Desc: {r['description'][:100]}...")
         print("-" * 40)
 
-    # Save to JSON
-    with open("nestjs_microservices.json", "w") as f:
-        json.dump(unique_repos, f, indent=2)
-    print(f"\nSaved results to nestjs_microservices.json")
+    OUTPUT_FILE.parent.mkdir(parents=True, exist_ok=True)
+    with OUTPUT_FILE.open("w", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(
+            f,
+            fieldnames=[
+                "name",
+                "owner",
+                "description",
+                "url",
+                "primaryLanguage",
+                "stargazerCount",
+            ],
+        )
+        writer.writeheader()
+        writer.writerows(unique_repos)
+    print(f"\nSaved results to {OUTPUT_FILE}")
 
 if __name__ == "__main__":
     main()
